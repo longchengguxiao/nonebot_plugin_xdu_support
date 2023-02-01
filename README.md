@@ -1,6 +1,6 @@
 <!-- markdownlint-disable MD033 MD041 -->
 <p align="center">
-  <img src="https://github.com/longchengguxiao/nonebot_plugin_xdu_support/blob/main/nonebot_plugin_xdu_support_logo.png" width="250" height="250" alt="nonebot_plugin_pvz">
+  <img src="https://github.com/longchengguxiao/nonebot_plugin_xdu_support/blob/master/nonebot_plugin_xdu_support_logo.png" width="250" height="250" alt="nonebot_plugin_pvz">
 </p>
 <div align="center">
 
