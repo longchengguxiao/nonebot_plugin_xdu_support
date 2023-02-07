@@ -78,6 +78,10 @@ python -m pip install nonebot_plugin_xdu_support
 <details>
 <summary>展开/收起</summary>
 
+### v0.3.7
+
++ 2023/02/07 更新学生健康信息，由[@cyk1464](https://github.com/cyk1464) 提供脚本
+
 ### v0.3.0
 
 + 2023/01/30 更新AED查询功能，结合路径给出最佳选择
