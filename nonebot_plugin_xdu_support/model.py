@@ -535,6 +535,77 @@ def get_url_marker(lat: str, lng: str, SK: str, appname: str) -> str:
     url = base_url + signed_url
     return url
 
+# 每日健康信息---------------------------------------------------------------------
+
+
+def punch_daily_health(username:str, password:str)->str:
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4515.159 Safari/537.36'
+    }
+    data = {
+        "username": username,
+        "password": password,
+    }
+    url = 'https://xxcapp.xidian.edu.cn/uc/wap/login/check'
+
+    session = requests.session()
+    session.post(url, headers=headers, data=data)
+    cookies = session.cookies.items()
+    cookie = ''
+    for name, value in cookies:
+        cookie += '{0}={1};'.format(name, value)
+
+    headers = {
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        "Content-Length": "87",
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Cookie": cookie,
+        "DNT": "1",
+        "Host": "xxcapp.xidian.edu.cn",
+        "Origin": "https://xxcapp.xidian.edu.cn",
+        "Pragma": "no-cache",
+        "Referer": "https://xxcapp.xidian.edu.cn/site/newForm/index?formid=810",
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": "same-origin",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36 Edg/109.0.1518.70",
+        "X-Requested-With": "XMLHttpRequest",
+        "sec-ch-ua": "\"Not_A Brand\";v=\"99\", \"Microsoft Edge\";v=\"109\", \"Chromium\";v=\"109\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Windows\"",
+    }
+
+
+    data = {
+        "formid": "810",
+    }
+    response = requests.post('https://xxcapp.xidian.edu.cn/forms/wap/default/get-info?formid=810', headers=headers,
+                             data=data)
+    res_js = json.loads(response.text)
+    value = res_js["d"]["value"]
+    data = {
+        "value[date_810_2]": datetime.now().strftime("%Y-%m-%d"),
+        "value[id]": value["id"],
+        "value[radio_810_1]": value["radio_810_1"],
+        "formid": "810",
+    }
+
+    response2 = requests.post('https://xxcapp.xidian.edu.cn/forms/wap/default/save', headers=headers, data=data)
+    res_js = json.loads(response2.text)
+
+    token = ""  # pushplus的token
+    title = "返校|" + res_js["m"]
+    content = title
+
+    requests.get(f'http://www.pushplus.plus/send?token={token}&title={title}&content={content}&template=html')
+    return res_js["m"]
+
+
 # 加密解密-------------------------------------------------------------------------
 
 

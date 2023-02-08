@@ -117,3 +117,5 @@ python -m pip install nonebot_plugin_xdu_support
 感谢 [libxduauth](https://github.com/xdlinux/libxduauth) 项目提供模拟登陆
 
 感谢 [xd_script](https://github.com/xdlinux/xidian-scripts) 项目提供参考，部分代码转化/改写自其中的脚本
+
+感谢 [@cyk1464](https://github.com/cyk1464) 提供学生健康信息脚本
