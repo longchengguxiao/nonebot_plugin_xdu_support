@@ -126,9 +126,9 @@ daily_health_info = on_command(
     block=True,
     aliases={"查看学生健康信息"})
 
-sport_punch = on_command("体育打卡查看", priority=6, block=False, aliases={"查看体育打卡"})
-timetable = on_command("课表查询", priority=6, block=False, aliases={"课表查看"})
-update_timetable = on_command("更新课表", priority=6, block=False)
+sport_punch = on_command("体育打卡查看", priority=6, block=True, aliases={"查看体育打卡"})
+timetable = on_command("课表查询", priority=5, block=True, aliases={"课表查看"})
+update_timetable = on_command("更新课表", priority=5, block=True)
 mayuan = on_command("马原", priority=6, block=True)
 idle_classroom_query = on_command("空闲教室", priority=6, block=True)
 aed_search = on_command("aed", priority=6, block=True, aliases={"AED"})
@@ -442,7 +442,10 @@ async def _(event: MessageEvent):
             ses.use_app(4770397878132218)
             get_timetable(ses, username, XDU_SUPPORT_PATH)
             await timetable.send("课表更新完成，启动自动提醒，稍后返回数据", at_sender=True)
-        message += get_whole_day_course(username, TIME_SCHED, XDU_SUPPORT_PATH)
+        if datetime.now().hour > 20:
+            message += get_whole_day_course(username, TIME_SCHED, XDU_SUPPORT_PATH, 1)
+        else:
+            message += get_whole_day_course(username, TIME_SCHED, XDU_SUPPORT_PATH)
         await timetable.finish(message)
     else:
         await timetable.finish("请先订阅课表提醒功能，再进行查询")

@@ -203,24 +203,24 @@ def get_next_course(username: str, basic_path: Union[Path, str]) -> str:
         today_course = courses.get(
             str(parse(f"{today.year}-{today.month}-{today.day}")).split(" ")[0], None)
         if today.hour == 8:
-            if today_course.get(0, None):
-                course = today_course.get(0)
+            if today_course.get("0", None):
+                course = today_course.get("0")
                 message += f"小小垚温馨提醒\n今天8:30-10.05\n你有一节 {course['name']} 在 {course['location']}上，\n请合理安排时间，不要迟到"
         elif today.hour == 9:
-            if today_course.get(1, None):
-                course = today_course.get(1)
+            if today_course.get("1", None):
+                course = today_course.get("1")
                 message += f"小小垚温馨提醒\n今天10:25-12:00\n你有一节 {course['name']} 在 {course['location']}上，\n请合理安排时间，不要迟到"
         elif today.hour == 13:
-            if today_course.get(2, None):
-                course = today_course.get(2)
+            if today_course.get("2", None):
+                course = today_course.get("2")
                 message += f"小小垚温馨提醒\n今天14:00-15:35\n你有一节 {course['name']} 在 {course['location']}上，\n请合理安排时间，不要迟到"
         elif today.hour == 15:
-            if today_course.get(3, None):
-                course = today_course.get(3)
+            if today_course.get("3", None):
+                course = today_course.get("3")
                 message += f"小小垚温馨提醒\n今天15:55-17:30\n你有一节 {course['name']} 在 {course['location']}上，\n请合理安排时间，不要迟到"
         elif today.hour == 18:
-            if today_course.get(4, None):
-                course = today_course.get(4)
+            if today_course.get("4", None):
+                course = today_course.get("4")
                 message += f"小小垚温馨提醒\n今天19:00-20:35\n你有一节 {course['name']} 在 {course['location']}上，\n请合理安排时间，不要迟到"
     return message
 
@@ -241,13 +241,13 @@ def get_whole_day_course(username: str, time_sche: List,
         today_course: Dict = courses.get(
             str(parse(f"{y}-{m}-{d}")).split(" ")[0], None)
         if _time == 0:
-            message += f"今天一共有{len(list(today_course.keys()))}结课需要上\n"
+            message += f"今天一共有{len(list(today_course.keys()))}节课需要上\n"
         else:
-            message += f"明天一共有{len(list(today_course.keys()))}结课需要上\n"
+            message += f"明天一共有{len(list(today_course.keys()))}节课需要上\n"
         message += "****************\n"
         for i in range(4):
-            if today_course.get(i, None):
-                message += f"{time_sche[i]} 有一节{today_course[i]['name']}\n上课地点在{today_course[i]['location']}\n"
+            if today_course.get(str(i), None):
+                message += f"{time_sche[i][0]}-{time_sche[i][1]}\n有一节: {today_course[str(i)]['name']}\n上课地点在: {today_course[str(i)]['location']}\n"
                 message += "****************\n"
     else:
         if _time == 0:
