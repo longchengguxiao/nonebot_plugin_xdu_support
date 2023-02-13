@@ -26,7 +26,7 @@ require("nonebot_plugin_apscheduler")
 # 配置初始项---------------------------------------------------------------
 
 MODLE = {
-    "晨午晚检": "Ehall",
+    # "晨午晚检": "Ehall",
     "学生健康信息":"Ehall",
     "体育打卡": "Sports",
     "课表提醒": "Ehall",
@@ -44,7 +44,7 @@ MODEL_NEED = {
 }
 
 MODEL_RUN_TIME = {
-    "晨午晚检": "被动：每天7/13/20点自动打卡，定位在南校区\n主动（晨午晚检查看/查看晨午晚检）：返回本阶段是否已打卡",
+    # "晨午晚检": "被动：每天7/13/20点自动打卡，定位在南校区\n主动（晨午晚检查看/查看晨午晚检）：返回本阶段是否已打卡",
     "学生健康信息": "被动：每天早上8点打卡，并且返回信息\n主动（学生健康信息查看）：返回本阶段是否打卡",
     "体育打卡": "被动：每10分钟检测一次，如果您有已上报的正在打卡的记录将会提醒您\n主动（体育打卡查看/查看体育打卡）：返回当前打卡次数信息",
     "课表提醒": "被动：每天早上7点私聊提醒一次今天课表上的课及其位置，每节课前30分钟提醒下节有课\n主动（空闲教室）：返回当天课表以及此时有没有课，最近的课是在什么时候",
@@ -279,41 +279,42 @@ async def got_model(event: MessageEvent, model_: str = ArgStr("model")):
         await cancel_sub.finish("输入有误，请重新检查您想订阅的功能名称并重试")
 
 # 晨午晚检---------------------------------------------------------------------------
+# 暂停使用
 
-
-@chenwuwanjian.handle()
-async def _(event: MessageEvent):
-    path = Path(XDU_SUPPORT_PATH, 'Ehall.txt')
-    flag, users = read_data(path)
-    users_id = [x[0] for x in users]
-    user_id = str(event.user_id)
-    if flag:
-        if user_id in users_id:
-            username = users[users_id.index(user_id)][1]
-            password = des_descrypt(
-                users[users_id.index(user_id)][2], DES_KEY).decode()
-            message = check(username, password)
-            await chenwuwanjian.finish(message=f'[{datetime.now().strftime("%d/%m/%Y %H:%M:%S")}] {message}')
-        else:
-            await chenwuwanjian.finish("您没有订阅晨午晚检功能，请先订阅再进行查看",)
-    else:
-        await chenwuwanjian.finish("获取数据失败，请联系管理员")
-
-
-# 定时7,14,20
-@scheduler.scheduled_job("cron", hour="7,14,20", month="2-7,9-12")
-async def run_every_7_hour():
-    bot = nonebot.get_bot()
-    path = Path(XDU_SUPPORT_PATH, 'Ehall.txt')
-    flag, users = read_data(path)
-    if flag:
-        for user in users:
-            message = check(user[1], des_descrypt(user[2], DES_KEY).decode())
-            await bot.send_private_msg(user_id=int(user[0]),
-                                       message=f'[{datetime.now().strftime("%d/%m/%Y %H:%M:%S")}] {message}')
-    else:
-        await bot.send_private_msg(user_id=int(superusers[0]),
-                                   message='晨午晚检读取数据失败，快维修')
+#
+# @chenwuwanjian.handle()
+# async def _(event: MessageEvent):
+#     path = Path(XDU_SUPPORT_PATH, 'Ehall.txt')
+#     flag, users = read_data(path)
+#     users_id = [x[0] for x in users]
+#     user_id = str(event.user_id)
+#     if flag:
+#         if user_id in users_id:
+#             username = users[users_id.index(user_id)][1]
+#             password = des_descrypt(
+#                 users[users_id.index(user_id)][2], DES_KEY).decode()
+#             message = check(username, password)
+#             await chenwuwanjian.finish(message=f'[{datetime.now().strftime("%d/%m/%Y %H:%M:%S")}] {message}')
+#         else:
+#             await chenwuwanjian.finish("您没有订阅晨午晚检功能，请先订阅再进行查看",)
+#     else:
+#         await chenwuwanjian.finish("获取数据失败，请联系管理员")
+#
+#
+# # 定时7,14,20
+# @scheduler.scheduled_job("cron", hour="7,14,20", month="2-7,9-12")
+# async def run_every_7_hour():
+#     bot = nonebot.get_bot()
+#     path = Path(XDU_SUPPORT_PATH, 'Ehall.txt')
+#     flag, users = read_data(path)
+#     if flag:
+#         for user in users:
+#             message = check(user[1], des_descrypt(user[2], DES_KEY).decode())
+#             await bot.send_private_msg(user_id=int(user[0]),
+#                                        message=f'[{datetime.now().strftime("%d/%m/%Y %H:%M:%S")}] {message}')
+#     else:
+#         await bot.send_private_msg(user_id=int(superusers[0]),
+#                                    message='晨午晚检读取数据失败，快维修')
 
 
 # 每日健康信息-----------------------------------------------------------------------
