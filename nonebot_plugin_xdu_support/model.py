@@ -418,8 +418,9 @@ def analyse_best_idle_room(idle_room: Dict[str,
         course_locations = [x["location"] for x in today_course.values()]
         course_buildings = [x.split("-")[0] if x != "待定" else x  for x in course_locations]
         course_rooms = [x.split("-")[1] if x != "待定" else x for x in course_locations]
-        same_building = {}
+
         flag = 0
+        message = f"结合您{time_}的课表\n****************\n"
         for i in range(len(course_buildings)):
             if course_buildings[i] == "待定":
                 continue
@@ -436,13 +437,19 @@ def analyse_best_idle_room(idle_room: Dict[str,
                 for room in idle_room[time_sche[course_time - 1]]:
                     if room.split("-")[1][0] == course_floor:
                         result.append(room.split("-")[1])
-                collection_rooms = Counter(result)
-                best_ans = collection_rooms.most_common(1)
-                message += f"结合您{time_}的课表推荐您\n第{time_sche[course_time]}节课（{list(today_course.values())[i]['name']}）前后\n去 {building}-{best_ans[0][0]} 教室自习，离您的教室较近且空的时间较多,足足有{best_ans[0][1]}节课\n"
+                result = [abs(int(x)-int(course_rooms[i])) for x in result]
+                collection_rooms = dict(Counter(result))
+                collection_rooms = sorted(collection_rooms.items(), key=lambda x:(-x[1], x[0]))
+                best_ans = collection_rooms[0]
+                message += f"推荐您在第{time_sche[course_time]}节课（{list(today_course.values())[i]['name']}）前后\n去 {building}-{best_ans[0]+int(course_rooms[i])} 教室自习\n" \
+                           f"离您的本节课教室（{course_buildings[i]}-{course_rooms[i]}）较近且空的时间较多,足足有{best_ans[1]}节课\n" \
+                           f"****************\n"
         if flag == 0:
-            message += f"结合您{time_}的课表，您在当天有课，但不在{building},即将为您推荐{building}空闲时间最多的教室。但可能更换自习地点会有更好的选择哦\n"
+            message += f"您在当天有课，但不在{building},即将为您推荐{building}空闲时间最多的教室。但可能更换自习地点会有更好的选择哦\n" \
+                       f"****************\n"
     else:
-        message += f"鉴于您{time_}的课表没有课，已为您推荐当天{building}空闲时间最多的教室\n"
+        message += f"鉴于您{time_}的课表,您当天并没有课，已为您推荐当天{building}空闲时间最多的教室\n" \
+                   f"****************\n"
     ans = []
     for k, v in idle_room.items():
         ans += v

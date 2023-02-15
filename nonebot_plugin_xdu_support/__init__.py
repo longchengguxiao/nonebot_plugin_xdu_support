@@ -1,26 +1,29 @@
-from nonebot_plugin_apscheduler import scheduler
 import nonebot
 from nonebot.plugin import on_command
-from nonebot.adapters.onebot.v11 import PrivateMessageEvent, GroupMessageEvent, Message, MessageEvent, MessageSegment
+from nonebot.adapters.onebot.v11 import PrivateMessageEvent, GroupMessageEvent, Message, MessageEvent, MessageSegment, Bot
 from nonebot.typing import T_State
 from nonebot.params import ArgStr, CommandArg, Arg
-
+from nonebot.log import logger
 from nonebot import require
+
+from typing import List, Union
 from libxduauth import EhallSession, SportsSession, XKSession
 from builtins import ConnectionError
 from pathlib import Path
 import asyncio
 from datetime import datetime
-from dateutil.parser import parse
+import jionlp as jio
 import os
-from .model import check, cron_check, get_sport_record, get_timetable, get_whole_day_course, get_next_course, get_question, get_teaching_buildings, get_classroom, get_idle_classroom, get_url_marker, get_url_routeplan, get_min_distance_aed, des_encrypt, des_descrypt, analyse_best_idle_room, punch_daily_health
-from .config import Config
 import json
 import re
+from .model import check, cron_check, get_sport_record, get_timetable, get_whole_day_course, get_next_course, get_question, get_teaching_buildings, get_classroom, get_idle_classroom, get_url_marker, get_url_routeplan, get_min_distance_aed, des_encrypt, des_descrypt, analyse_best_idle_room, punch_daily_health
+from .config import Config
+
 
 # 启动定时器---------------------------------------------------------------
 
 require("nonebot_plugin_apscheduler")
+from nonebot_plugin_apscheduler import scheduler
 
 
 # 配置初始项---------------------------------------------------------------
@@ -126,11 +129,11 @@ daily_health_info = on_command(
     block=True,
     aliases={"查看学生健康信息"})
 
-sport_punch = on_command("体育打卡查看", priority=6, block=True, aliases={"查看体育打卡"})
-timetable = on_command("课表查询", priority=5, block=True, aliases={"课表查看"})
+sport_punch = on_command("体育打卡查看", priority=6, block=True, aliases={"查看体育打卡","体育打卡查询", "查询体育打卡"})
+timetable = on_command("课表查询", priority=5, block=True, aliases={"课表查看", "查看课表", "查询课表"})
 update_timetable = on_command("更新课表", priority=5, block=True)
 mayuan = on_command("马原", priority=6, block=True)
-idle_classroom_query = on_command("空闲教室", priority=6, block=True)
+idle_classroom_query = on_command("空闲教室查询", priority=6, block=True, aliases={"空闲教室查看", "查询空闲教室", "查看空闲教室"})
 aed_search = on_command("aed", priority=6, block=True, aliases={"AED"})
 
 # 功能订阅-----------------------------------------------------------------
@@ -628,11 +631,11 @@ async def _(event: MessageEvent, state: T_State, user_ans: str = ArgStr("user_an
 
 
 @idle_classroom_query.handle()
-async def _(event: MessageEvent, state: T_State, args: Message = CommandArg()):
+async def _(bot:Bot,event: MessageEvent, state: T_State, args: Message = CommandArg()):
     flag, users = read_data(Path(XDU_SUPPORT_PATH, 'Ehall.txt'))
     users_id = [x[0] for x in users]
     user_id = str(event.user_id)
-    message = ""
+    message = []
     app_id = 4768402106681759
     if user_id in users_id:
         username = users[users_id.index(user_id)][1]
@@ -658,15 +661,15 @@ async def _(event: MessageEvent, state: T_State, args: Message = CommandArg()):
             if msg[0] in buildings:
                 state["build"] = msg[0]
             try:
-                time_select = parse(msg[1], fuzzy=False)
-                state["time_select"] = str(time_select).split(' ')[0]
+                time_select = jio.parse_time(msg[1]).get("time")[0].split(" ")[0]
+                state["time_select"] = time_select
             except ValueError:
                 pass
         else:
-            message += "南校区的教学楼有:\n"
+            message.append(MessageSegment.text("南校区的教学楼有:"))
             for build in teaching_buildings:
-                message += f"{build[0]},"
-            await idle_classroom_query.send(message)
+                message.append(MessageSegment.text(f"{build[0]}"))
+            await send_forward_msg(bot, event, name="XDU小助手", uin=bot.self_id, msgs=message)
         state["ses"] = ses
         state["buildings"] = teaching_buildings
     else:
@@ -700,14 +703,12 @@ async def _(state: T_State, build: str = ArgStr("build")):
         await idle_classroom_query.finish("您输入的教学楼名称有误，请检查输入")
 
 
-@idle_classroom_query.got("time_select", prompt="请输入查询日期,格式为年-月-日")
+@idle_classroom_query.got("time_select", prompt="请输入查询日期,支持输入模糊文字如'下周四'或'这周三'")
 async def _(event:MessageEvent, state: T_State, time_selector: str = ArgStr("time_select")):
-    message = ""
     if time_selector in ["取消", "算了"]:
         await idle_classroom_query.finish("已取消本次操作")
     try:
-        time_ = parse(time_selector)
-        time_ = str(time_).split(" ")[0]
+        time_ = jio.parse_time(time_selector).get("time")[0].split(" ")[0]
         ses = state["ses"]
         rooms = state["rooms"]
         build = state["build"]
@@ -727,7 +728,6 @@ async def _(event:MessageEvent, state: T_State, time_selector: str = ArgStr("tim
         flag, users = read_data(Path(XDU_SUPPORT_PATH, 'Ehall.txt'))
         users_id = [x[0] for x in users]
         user_id = str(event.user_id)
-        message = ""
         if user_id in users_id:
             username = users[users_id.index(user_id)][1]
             password = des_descrypt(
@@ -746,7 +746,7 @@ async def _(event:MessageEvent, state: T_State, time_selector: str = ArgStr("tim
         message = analyse_best_idle_room(result, courses, time_, teaching_buildings[buildings.index(build)][1])
         await idle_classroom_query.finish(message)
     except ValueError:
-        await idle_classroom_query.finish("输入日期有误，请检查输入")
+        await idle_classroom_query.reject_arg("time_select",prompt="输入日期无法识别，请检查输入. 取消操作请回复'取消'或'算了'")
 
 
 # AED-------------------------------------------------------------------------------
@@ -862,3 +862,31 @@ def read_data(path: Path) -> (bool, list):
     except BaseException as e:
         print(e)
         return STATE_ERROR, []
+
+# 合并转发---------------------------------------------------------------------------------------
+
+
+async def send_forward_msg(
+    bot: Bot,
+    event: MessageEvent,
+    name: str,
+    uin: str,
+    msgs: List[Union[MessageSegment, Message]],
+) -> dict:
+    def to_json(msg: Union[MessageSegment, Message]):
+        return {
+            "type": "node",
+            "data": {
+                "name": name,
+                "uin": uin,
+                "content": msg}}
+
+    messages = [to_json(msg) for msg in msgs]
+    if isinstance(event, GroupMessageEvent):
+        return await bot.call_api(
+            "send_group_forward_msg", group_id=event.group_id, messages=messages
+        )
+    else:
+        return await bot.call_api(
+            "send_private_forward_msg", user_id=event.user_id, messages=messages
+        )
