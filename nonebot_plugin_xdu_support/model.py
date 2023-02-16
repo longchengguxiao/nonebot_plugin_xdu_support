@@ -434,9 +434,10 @@ def analyse_best_idle_room(idle_room: Dict[str,
                     for room in idle_room[time_sche[course_time + 1]]:
                         if room.split("-")[1][0] == course_floor:
                             result.append(room.split("-")[1])
-                for room in idle_room[time_sche[course_time - 1]]:
-                    if room.split("-")[1][0] == course_floor:
-                        result.append(room.split("-")[1])
+                if course_time !=0:
+                    for room in idle_room[time_sche[course_time - 1]]:
+                        if room.split("-")[1][0] == course_floor:
+                            result.append(room.split("-")[1])
                 result = [abs(int(x)-int(course_rooms[i])) for x in result]
                 collection_rooms = dict(Counter(result))
                 collection_rooms = sorted(collection_rooms.items(), key=lambda x:(-x[1], x[0]))

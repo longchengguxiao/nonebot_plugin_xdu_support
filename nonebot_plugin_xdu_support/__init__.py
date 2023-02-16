@@ -12,6 +12,7 @@ from builtins import ConnectionError
 from pathlib import Path
 import asyncio
 from datetime import datetime
+import time
 import jionlp as jio
 import os
 import json
@@ -661,7 +662,7 @@ async def _(bot:Bot,event: MessageEvent, state: T_State, args: Message = Command
             if msg[0] in buildings:
                 state["build"] = msg[0]
             try:
-                time_select = jio.parse_time(msg[1]).get("time")[0].split(" ")[0]
+                time_select = jio.parse_time(msg[1], time_base=time.time()).get("time")[0].split(" ")[0]
                 state["time_select"] = time_select
             except ValueError:
                 pass
@@ -708,7 +709,7 @@ async def _(event:MessageEvent, state: T_State, time_selector: str = ArgStr("tim
     if time_selector in ["取消", "算了"]:
         await idle_classroom_query.finish("已取消本次操作")
     try:
-        time_ = jio.parse_time(time_selector).get("time")[0].split(" ")[0]
+        time_ = jio.parse_time(time_selector, time_base=time.time()).get("time")[0].split(" ")[0]
         ses = state["ses"]
         rooms = state["rooms"]
         build = state["build"]
