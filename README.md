@@ -84,7 +84,7 @@ python -m pip install nonebot_plugin_xdu_support
 
 + 2023/02/16 修复早八存在时无法查询的问题
 
-+ 2023/02/15 优化空闲教室查询，日期支持自然语言处理
++ 2023/02/15 优化空闲教室查询，日期支持自然语言处理（JioNLP）
 
 + 2023/02/12 疫情时代已经过去，晨午晚检已成为过去式，因此封存该部分功能
 
@@ -129,3 +129,5 @@ python -m pip install nonebot_plugin_xdu_support
 感谢 [xd_script](https://github.com/xdlinux/xidian-scripts) 项目提供参考，部分代码转化/改写自其中的脚本
 
 感谢 [@cyk1464](https://github.com/cyk1464) 提供学生健康信息脚本
+
+感谢 [JioNLP](https://github.com/dongrixinyu/JioNLP) 提供时间部分的自然语言处理服务
