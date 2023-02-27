@@ -80,6 +80,13 @@ python -m pip install nonebot_plugin_xdu_support
 <details>
 <summary>展开/收起</summary>
 
+### v0.4.2
+
++ 2023/02/27 新增青年大学习未完成名单获取功能，但需使用团支书账号
+
++ 2023/02/27 修复已知问题
+
+
 ### v0.4.0
 
 + 2023/02/16 修复早八存在时无法查询的问题

@@ -20,6 +20,11 @@ from collections import Counter
 from dateutil.parser import parse
 import numpy as np
 import hashlib
+from requests import Session
+import requests
+from Crypto.PublicKey import RSA
+import base64
+from Crypto.Cipher import PKCS1_v1_5
 
 # 晨午晚检------------------------------------------------------------------------
 
@@ -416,8 +421,10 @@ def analyse_best_idle_room(idle_room: Dict[str,
     if timetable.get(time_, None):
         today_course = timetable.get(time_, None)
         course_locations = [x["location"] for x in today_course.values()]
-        course_buildings = [x.split("-")[0] if x != "待定" else x  for x in course_locations]
-        course_rooms = [x.split("-")[1] if x != "待定" else x for x in course_locations]
+        course_buildings = [
+            x.split("-")[0] if x != "待定" else x for x in course_locations]
+        course_rooms = [
+            x.split("-")[1] if x != "待定" else x for x in course_locations]
 
         flag = 0
         message = f"结合您{time_}的课表\n****************\n"
@@ -434,13 +441,14 @@ def analyse_best_idle_room(idle_room: Dict[str,
                     for room in idle_room[time_sche[course_time + 1]]:
                         if room.split("-")[1][0] == course_floor:
                             result.append(room.split("-")[1])
-                if course_time !=0:
+                if course_time != 0:
                     for room in idle_room[time_sche[course_time - 1]]:
                         if room.split("-")[1][0] == course_floor:
                             result.append(room.split("-")[1])
-                result = [abs(int(x)-int(course_rooms[i])) for x in result]
+                result = [abs(int(x) - int(course_rooms[i])) for x in result]
                 collection_rooms = dict(Counter(result))
-                collection_rooms = sorted(collection_rooms.items(), key=lambda x:(-x[1], x[0]))
+                collection_rooms = sorted(
+                    collection_rooms.items(), key=lambda x: (-x[1], x[0]))
                 best_ans = collection_rooms[0]
                 message += f"推荐您在第{time_sche[course_time]}节课（{list(today_course.values())[i]['name']}）前后\n去 {building}-{best_ans[0]+int(course_rooms[i])} 教室自习\n" \
                            f"离您的本节课教室（{course_buildings[i]}-{course_rooms[i]}）较近且空的时间较多,足足有{best_ans[1]}节课\n" \
@@ -548,7 +556,7 @@ def get_url_marker(lat: str, lng: str, SK: str, appname: str) -> str:
 # 每日健康信息---------------------------------------------------------------------
 
 
-def punch_daily_health(username:str, password:str)->str:
+def punch_daily_health(username: str, password: str) -> str:
 
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4515.159 Safari/537.36'
@@ -590,12 +598,13 @@ def punch_daily_health(username:str, password:str)->str:
         "sec-ch-ua-platform": "\"Windows\"",
     }
 
-
     data = {
         "formid": "810",
     }
-    response = requests.post('https://xxcapp.xidian.edu.cn/forms/wap/default/get-info?formid=810', headers=headers,
-                             data=data)
+    response = requests.post(
+        'https://xxcapp.xidian.edu.cn/forms/wap/default/get-info?formid=810',
+        headers=headers,
+        data=data)
     res_js = json.loads(response.text)
     value = res_js["d"]["value"]
     data = {
@@ -605,15 +614,66 @@ def punch_daily_health(username:str, password:str)->str:
         "formid": "810",
     }
 
-    response2 = requests.post('https://xxcapp.xidian.edu.cn/forms/wap/default/save', headers=headers, data=data)
+    response2 = requests.post(
+        'https://xxcapp.xidian.edu.cn/forms/wap/default/save',
+        headers=headers,
+        data=data)
     res_js = json.loads(response2.text)
 
     token = ""  # pushplus的token
     title = "返校|" + res_js["m"]
     content = title
 
-    requests.get(f'http://www.pushplus.plus/send?token={token}&title={title}&content={content}&template=html')
+    requests.get(
+        f'http://www.pushplus.plus/send?token={token}&title={title}&content={content}&template=html')
     return res_js["m"]
+
+
+# 青年大学习未完成名单获取--------------------------------------------------------------------------
+
+def get_verify(ses: Session, base_path: Union[Path, str]):
+    content = ses.get(
+        "https://api.sxgqt.org.cn/bgsxapiv2/login/verify").content
+    with open(os.path.join(base_path, "verify.png"), "wb") as f:
+        f.write(content)
+
+
+def get_youthstudy_names(ses: Session,
+                         verify: str,
+                         username: str,
+                         password: str) -> (bool,
+                                            str):
+    msg = ""
+    public_key = "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyDwpaSAik1ORaCphEU7j\nZsWuvEIy4Zwu2LkyH+cI71oIwPN9z0uTpWrswB+DHVGp/WprDok9B2tEyYYnRKgT\nSsYhJLIgAcehyrPm0R72E+wFZvxS4VHIyLIRznhuq5Dge7MrVcbTPGT9bppKYZM8\ncujagOPfG7OtxBnNJAWTfGXKrKFltjGh+02YZ2co9DT+rjN1hzcSd8nRZOuEX89j\ny3eRKxz+fQEpwdkV3ZYFLj3QhlRrxzNAoIcseV0FKhW9d5NruVEGQAIswjqbFpgF\n7ykEddCqpa2nBnb7Aao+BGE6Q5K/enBnILrZDpoSwNEvzt54d6gYZoHZA6+A9Dta\nOwIDAQAB\n-----END PUBLIC KEY-----"
+    res = ses.post(
+        "https://api.sxgqt.org.cn/bgsxapiv2/admin/login",
+        data={
+            "account": username,
+            "is_quick": 0,
+            "pass": f"{encryption(password,public_key.encode('utf-8'))}",
+            "verify": verify})
+    resp = res.json()
+    if resp.get("msg") != "success":
+        return False, "验证码错误"
+    user_name = resp.get("data").get("username")
+    msg += f"成功登录陕西青年大学习\n当前用户为{user_name}\n"
+    token = resp.get("data").get("token")
+    headers = {
+        "token": token
+    }
+    origin = ses.get(
+        "https://api.sxgqt.org.cn/bgsxapiv2/organization/getOrganizeMess",
+        headers=headers).json()
+    oid = origin.get("data").get("pid")
+    id = origin.get("data").get("id")
+    msg += f"当前组织id为{id}\n本组织内当期青年大学习未完成的有：\n"
+    students = ses.get(
+        f"https://api.sxgqt.org.cn/bgsxapiv2/regiment?page=1&rows=100&keyword=&oid={id}&leagueStatus=&goHomeStatus=&memberCardStatus=&isPartyMember=&isAll=",
+        headers=headers).json().get("data").get("data")
+    for student in students:
+        if student.get("isStudy") == "否":
+            msg += f'{student.get("realname")}  '
+    return True, msg
 
 
 # 加密解密-------------------------------------------------------------------------
@@ -633,3 +693,15 @@ def des_descrypt(s: str, key: str) -> bytes:
     des_obj = des(secret_key, CBC, iv, pad=None, padmode=PAD_PKCS5)
     decrypt_str = des_obj.decrypt(binascii.a2b_hex(s), padmode=PAD_PKCS5)
     return decrypt_str
+
+
+def encryption(text: str, public_key: bytes):
+    # 字符串指定编码（转为bytes）
+    text = text.encode('utf-8')
+    # 构建公钥对象
+    cipher_public = PKCS1_v1_5.new(RSA.importKey(public_key))
+    # 加密（bytes）
+    text_encrypted = cipher_public.encrypt(text)
+    # base64编码，并转为字符串
+    text_encrypted_base64 = base64.b64encode(text_encrypted).decode()
+    return text_encrypted_base64

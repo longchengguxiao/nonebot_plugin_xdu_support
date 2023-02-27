@@ -1,3 +1,4 @@
+from nonebot_plugin_apscheduler import scheduler
 import nonebot
 from nonebot.plugin import on_command
 from nonebot.adapters.onebot.v11 import PrivateMessageEvent, GroupMessageEvent, Message, MessageEvent, MessageSegment, Bot
@@ -5,7 +6,7 @@ from nonebot.typing import T_State
 from nonebot.params import ArgStr, CommandArg, Arg
 from nonebot.log import logger
 from nonebot import require
-
+import requests
 from typing import List, Union
 from libxduauth import EhallSession, SportsSession, XKSession
 from builtins import ConnectionError
@@ -17,14 +18,13 @@ import jionlp as jio
 import os
 import json
 import re
-from .model import check, cron_check, get_sport_record, get_timetable, get_whole_day_course, get_next_course, get_question, get_teaching_buildings, get_classroom, get_idle_classroom, get_url_marker, get_url_routeplan, get_min_distance_aed, des_encrypt, des_descrypt, analyse_best_idle_room, punch_daily_health
+from .model import check, cron_check, get_sport_record, get_timetable, get_whole_day_course, get_next_course, get_question, get_teaching_buildings, get_classroom, get_idle_classroom, get_url_marker, get_url_routeplan, get_min_distance_aed, des_encrypt, des_descrypt, analyse_best_idle_room, punch_daily_health, get_youthstudy_names, get_verify
 from .config import Config
 
 
 # 启动定时器---------------------------------------------------------------
 
 require("nonebot_plugin_apscheduler")
-from nonebot_plugin_apscheduler import scheduler
 
 
 # 配置初始项---------------------------------------------------------------
@@ -36,7 +36,8 @@ MODLE = {
     "课表提醒": "Ehall",
     "选课操作": "XK",
     "马原测试": "MY",
-    "空闲教室查询":"Ehall"
+    "空闲教室查询": "Ehall",
+    "青年大学习": "Youth"
 
 }
 
@@ -44,7 +45,8 @@ MODEL_NEED = {
     "Ehall": ["学号", "一站式大厅密码"],
     "Sports": ["学号", "体适能密码"],
     "XK": ["学号", "选课密码"],
-    "MY": ["随便输入一些吧，反正也不需要补充信息~"]
+    "MY": ["随便输入一些吧，反正也不需要补充信息~"],
+    "Youth": ["陕西青少年大数据服务平台账号", "青少年大数据密码"]
 }
 
 MODEL_RUN_TIME = {
@@ -54,7 +56,8 @@ MODEL_RUN_TIME = {
     "课表提醒": "被动：每天早上7点私聊提醒一次今天课表上的课及其位置，每节课前30分钟提醒下节有课\n主动（空闲教室）：返回当天课表以及此时有没有课，最近的课是在什么时候",
     "选课操作": "暂未编写，但在计划内",
     "马原测试": "被动：无\n主动：返回一道单选或者多选题,可以通过参数决定，无参数默认随机",
-    "空闲教室查询": "主动:返回查找日期的空闲教室，会经过优化"
+    "空闲教室查询": "主动:返回查找日期的空闲教室，会经过优化",
+    "青年大学习": "主动返回本组织内当期青年大学习未完成名单"
 }
 
 TIME_SCHED = [
@@ -130,12 +133,32 @@ cancel_sub = on_command(
 #     block=True,
 #     aliases={"查看学生健康信息"})
 
-sport_punch = on_command("体育打卡查看", priority=6, block=True, aliases={"查看体育打卡","体育打卡查询", "查询体育打卡", "我的体育打卡"})
-timetable = on_command("课表查询", priority=5, block=True, aliases={"课表查看", "查看课表", "查询课表", "我的课表"})
-update_timetable = on_command("更新课表", priority=5, block=True,aliases={"课表更新"})
+sport_punch = on_command(
+    "体育打卡查看",
+    priority=6,
+    block=True,
+    aliases={
+        "查看体育打卡",
+        "体育打卡查询",
+        "查询体育打卡",
+        "我的体育打卡"})
+timetable = on_command(
+    "课表查询",
+    priority=5,
+    block=True,
+    aliases={
+        "课表查看",
+        "查看课表",
+        "查询课表",
+        "我的课表"})
+update_timetable = on_command("更新课表", priority=5, block=True, aliases={"课表更新"})
 mayuan = on_command("马原", priority=6, block=True)
-idle_classroom_query = on_command("空闲教室查询", priority=6, block=True, aliases={"空闲教室查看", "查询空闲教室", "查看空闲教室"})
+idle_classroom_query = on_command(
+    "空闲教室查询", priority=6, block=True, aliases={
+        "空闲教室查看", "查询空闲教室", "查看空闲教室"})
 aed_search = on_command("aed", priority=6, block=True, aliases={"AED"})
+
+youthstudy = on_command("青年大学习", priority=5, block=True, aliases={"未完成学习"})
 
 # 功能订阅-----------------------------------------------------------------
 
@@ -199,7 +222,15 @@ async def got_info(event: PrivateMessageEvent, state: T_State, info: str = ArgSt
     flag = 0
     await asyncio.sleep(1)
     path = state["path"]
-    info = info.replace("&amp;", "&").replace("&#44;", ",").replace("&#91;", "[").replace("&#93;", "]").split()
+    info = info.replace(
+        "&amp;",
+        "&").replace(
+        "&#44;",
+        ",").replace(
+            "&#91;",
+            "[").replace(
+                "&#93;",
+        "]").split()
     users = state["users"]
     user_id = state["user_id"]
     infos = state["infos"]
@@ -374,7 +405,8 @@ async def got_model(event: MessageEvent, model_: str = ArgStr("model")):
 #                 await asyncio.sleep(1)
 #                 await bot.send_private_msg(user_id=int(user[0]), message=res)
 #     else:
-#         await bot.send_private_msg(user_id=int(superusers[0]), message="体育打卡报时任务出错啦，请及时检查")
+# await bot.send_private_msg(user_id=int(superusers[0]),
+# message="体育打卡报时任务出错啦，请及时检查")
 
 
 @sport_punch.handle()
@@ -448,9 +480,11 @@ async def _(event: MessageEvent):
             get_timetable(ses, username, XDU_SUPPORT_PATH)
             await timetable.send("课表更新完成，启动自动提醒，稍后返回数据", at_sender=True)
         if datetime.now().hour > 20:
-            message += get_whole_day_course(username, TIME_SCHED, XDU_SUPPORT_PATH, 1)
+            message += get_whole_day_course(username,
+                                            TIME_SCHED, XDU_SUPPORT_PATH, 1)
         else:
-            message += get_whole_day_course(username, TIME_SCHED, XDU_SUPPORT_PATH)
+            message += get_whole_day_course(username,
+                                            TIME_SCHED, XDU_SUPPORT_PATH)
         await timetable.finish(message)
     else:
         await timetable.finish("请先订阅课表提醒功能，再进行查询")
@@ -632,7 +666,7 @@ async def _(event: MessageEvent, state: T_State, user_ans: str = ArgStr("user_an
 
 
 @idle_classroom_query.handle()
-async def _(bot:Bot,event: MessageEvent, state: T_State, args: Message = CommandArg()):
+async def _(bot: Bot, event: MessageEvent, state: T_State, args: Message = CommandArg()):
     flag, users = read_data(Path(XDU_SUPPORT_PATH, 'Ehall.txt'))
     users_id = [x[0] for x in users]
     user_id = str(event.user_id)
@@ -662,7 +696,8 @@ async def _(bot:Bot,event: MessageEvent, state: T_State, args: Message = Command
             if msg[0] in buildings:
                 state["build"] = msg[0]
             try:
-                time_select = jio.parse_time(msg[1], time_base=time.time()).get("time")[0].split(" ")[0]
+                time_select = jio.parse_time(
+                    msg[1], time_base=time.time()).get("time")[0].split(" ")[0]
                 state["time_select"] = time_select
             except ValueError:
                 pass
@@ -705,11 +740,13 @@ async def _(state: T_State, build: str = ArgStr("build")):
 
 
 @idle_classroom_query.got("time_select", prompt="请输入查询日期,支持输入模糊文字如'下周四'或'这周三'")
-async def _(event:MessageEvent, state: T_State, time_selector: str = ArgStr("time_select")):
+async def _(event: MessageEvent, state: T_State, time_selector: str = ArgStr("time_select")):
     if time_selector in ["取消", "算了"]:
         await idle_classroom_query.finish("已取消本次操作")
     try:
-        time_ = jio.parse_time(time_selector, time_base=time.time()).get("time")[0].split(" ")[0]
+        time_ = jio.parse_time(
+            time_selector,
+            time_base=time.time()).get("time")[0].split(" ")[0]
         ses = state["ses"]
         rooms = state["rooms"]
         build = state["build"]
@@ -744,34 +781,44 @@ async def _(event:MessageEvent, state: T_State, time_selector: str = ArgStr("tim
                 await timetable.send("课表更新完成，启动自动分析，稍后返回数据", at_sender=True)
             with open(os.path.join(XDU_SUPPORT_PATH, f"{username}-remake.json"), "r", encoding="utf-8") as f:
                 courses = json.loads(f.read())
-        message = analyse_best_idle_room(result, courses, time_, teaching_buildings[buildings.index(build)][1])
+        message = analyse_best_idle_room(
+            result, courses, time_, teaching_buildings[buildings.index(build)][1])
         await idle_classroom_query.finish(message)
     except ValueError:
-        await idle_classroom_query.reject_arg("time_select",prompt="输入日期无法识别，请检查输入. 取消操作请回复'取消'或'算了'")
+        await idle_classroom_query.reject_arg("time_select", prompt="输入日期无法识别，请检查输入. 取消操作请回复'取消'或'算了'")
 
 
 # AED-------------------------------------------------------------------------------
 
 
 @aed_search.handle()
-async def _(state:T_State):
+async def _(state: T_State):
     await aed_search.send("收到请求,欢迎使用AED查询，南北校区均适用。请按照操作提示进行操作以尽快获得位置数据")
     await asyncio.sleep(1)
     if not SK:
         await aed_search.send("由于未配置SK，因此只能返回文字数据")
         state["pos"] = " "
 
+
 @aed_search.got("pos", prompt=("点击QQ右下角的加号'+'，依次点击'位置','发送位置','发送'"))
-async def _(state:T_State, pos:Message = Arg("pos")):
-    pos = str(pos).replace("&amp;", "&").replace("&#44;", ",").replace("&#91;", "[").replace("&#93;", "]")
-    pos = re.sub("\[\[位置].*?]请使用最新版本手机QQ查看", "", pos)
+async def _(state: T_State, pos: Message = Arg("pos")):
+    pos = str(pos).replace(
+        "&amp;",
+        "&").replace(
+        "&#44;",
+        ",").replace(
+            "&#91;",
+            "[").replace(
+                "&#93;",
+        "]")
+    pos = re.sub("\\[\\[位置].*?]请使用最新版本手机QQ查看", "", pos)
     lat = ""
     lng = ""
     try:
         data = json.loads(pos[14:-1])
         lat += data["meta"]["Location.Search"]["lat"]
         lng += data["meta"]["Location.Search"]["lng"]
-    except:
+    except BaseException:
         pass
     if not lng:
         _, _, aed_infos = get_min_distance_aed()
@@ -781,7 +828,7 @@ async def _(state:T_State, pos:Message = Arg("pos")):
             temp = "已获取推荐的AED地点:\n"
         cnt = 0
         for info in aed_infos:
-            cnt+=1
+            cnt += 1
             temp += f"{cnt}. 位于{info['campus']}{info['loc']},{info['description']}\n"
         temp += "除以上信息外，每栋宿舍楼的2楼都有除颤仪配备，如有需要可以联系宿管询问\n\n请选择AED序号以获取发送位置信息"
         await aed_search.send(temp)
@@ -802,22 +849,33 @@ async def _(state:T_State, pos:Message = Arg("pos")):
 
 
 @aed_search.got("num")
-async def _(state:T_State, num:str = ArgStr("num")):
+async def _(state: T_State, num: str = ArgStr("num")):
     if SK:
         max_num = state["max_num"]
         if num not in [str(x) for x in range(max_num)]:
             await aed_search.finish("输入的数字超出了范围，请重新操作")
         aed_infos = state["infos"]
         num = int(num)
-        info = aed_infos[num-1]
+        info = aed_infos[num - 1]
         if max_num == 2:
             now_lat = state["lat"]
             now_lng = state["lng"]
-            url = get_url_routeplan(now_lat, now_lng, info["lat"], info["lng"], SK, appname)
+            url = get_url_routeplan(
+                now_lat,
+                now_lng,
+                info["lat"],
+                info["lng"],
+                SK,
+                appname)
         else:
             url = get_url_marker(info["lat"], info["lng"], SK, appname)
 
-        message = MessageSegment.share(url, title="腾讯地图", content=info["loc"] + "_" + info["description"])
+        message = MessageSegment.share(
+            url,
+            title="腾讯地图",
+            content=info["loc"] +
+            "_" +
+            info["description"])
         await aed_search.send(message)
     await asyncio.sleep(1)
     await aed_search.finish("找到AED除颤仪后请按照AED语音提示操作，注意与心肺复苏相急救结合使用。基本步骤如下:\n"
@@ -825,6 +883,40 @@ async def _(state:T_State, num:str = ArgStr("num")):
                             "2、打开患者衣物裸露胸部，并根据标识将电极贴片贴在相应位置；\n"
                             "3、AED分析心率：避免接触患者，以免干扰对心率的分析；\n"
                             "4、当心率分析结果为室颤时，AED进行充电，充电完成后按下橙色按钮进行除颤，患者表现为全身瞬间抖动，之后需继续心肺复苏")
+
+
+# 青年大学习--------------------------------------------------------------------------
+
+@youthstudy.handle()
+async def _(event: MessageEvent, state: T_State):
+    flag, users = read_data(Path(XDU_SUPPORT_PATH, 'Youth.txt'))
+    users_id = [x[0] for x in users]
+    user_id = str(event.user_id)
+    if user_id in users_id:
+        state["username"] = users[users_id.index(user_id)][1]
+        state["password"] = des_descrypt(
+            users[users_id.index(user_id)][2], DES_KEY).decode()
+        ses = requests.session()
+        get_verify(ses, base_path=XDU_SUPPORT_PATH)
+        state["ses"] = ses
+        await asyncio.sleep(0.5)
+        await youthstudy.send(MessageSegment.image("file:///" / Path(XDU_SUPPORT_PATH) / "verify.png"))
+        await asyncio.sleep(0.5)
+
+    else:
+        await youthstudy.finish("您暂未绑定青年大学习服务，请先绑定")
+
+
+@youthstudy.got("verify", prompt="请输入验证码")
+async def _(state: T_State, verify: str = ArgStr("verify")):
+    username = state["username"]
+    password = state["password"]
+    ses = state["ses"]
+    flag, msg = get_youthstudy_names(ses, verify, username, password)
+    if flag:
+        await youthstudy.finish(msg)
+    else:
+        await youthstudy.finish("登录失败，可能是验证码错误或账号密码失效，请重试")
 
 # 文档操作----------------------------------------------------------------------------
 
