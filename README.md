@@ -119,7 +119,11 @@ python -m pip install nonebot_plugin_xdu_support
 ```buildoutcfg
 对Python编程比较熟悉的使用者可以在 .env 文件中设置XDU_SUPPORT_PATH来选择存储位置，不设置即为默认位置
 
-设置 DES_KEY 来更改加密秘钥，但要注意必须是8位的字符串，否则无法正常运行
+设置 DES_KEY 来更改加密秘钥
+
+将 appname 设置为你的应用名称，可以在腾讯地图开放平台申请并获取
+
+将 SK 设置为你的secret_key，可以在腾讯地图开放平台申请并获取（需要和appname属于同一个应用）
 ```
 
 ## 特别感谢
