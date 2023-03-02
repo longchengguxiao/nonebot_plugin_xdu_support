@@ -853,6 +853,7 @@ async def _(event:MessageEvent, state:T_State):
     else:
         await youthstudy.finish("您暂未绑定青年大学习服务，请先绑定")
 
+
 @youthstudy.got("verify", prompt="请输入验证码")
 async def _(state:T_State, verify:str = ArgStr("verify")):
     username = state["username"]

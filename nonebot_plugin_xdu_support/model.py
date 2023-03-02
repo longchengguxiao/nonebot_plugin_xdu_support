@@ -1,8 +1,6 @@
 import asyncio
 import time
 import pytz
-import datetime
-import requests
 from libxduauth import EhallSession, SportsSession
 import json
 from datetime import datetime, timedelta
