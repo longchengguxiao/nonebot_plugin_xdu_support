@@ -51,7 +51,7 @@ def commit_data(username: str, password: str) -> str:
 
 
 def get_hour_message() -> str:
-    h = datetime.datetime.fromtimestamp(
+    h = datetime.fromtimestamp(
         int(time.time()), pytz.timezone('Asia/Shanghai')).hour
     if 6 <= h <= 11:
         return '晨'
