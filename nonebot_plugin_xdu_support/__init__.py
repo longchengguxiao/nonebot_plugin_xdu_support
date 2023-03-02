@@ -3,7 +3,6 @@ from nonebot.plugin import on_command
 from nonebot.adapters.onebot.v11 import PrivateMessageEvent, GroupMessageEvent, Message, MessageEvent, MessageSegment, Bot
 from nonebot.typing import T_State
 from nonebot.params import ArgStr, CommandArg, Arg
-from nonebot.log import logger
 from nonebot import require
 
 import requests

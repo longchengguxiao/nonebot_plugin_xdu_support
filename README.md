@@ -80,6 +80,12 @@ python -m pip install nonebot_plugin_xdu_support
 <details>
 <summary>展开/收起</summary>
 
+### v0.4.3
+
++ 修改部分文字描述，更贴近于使用
+
++ 需求库中新增`python-dateutil`解决运行报错
+
 ### v0.4.2
 
 + 2023/02/27 新增青年大学习未完成名单获取功能，但需使用团支书账号

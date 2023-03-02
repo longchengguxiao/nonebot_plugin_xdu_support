@@ -4,13 +4,13 @@ path = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(path, "README.md"), "r", encoding="utf-8") as f:
     long_description = f.read()
     setup(name='nonebot_plugin_xdu_support',  # 包名
-          version='0.4.2',  # 版本号
+          version='0.4.3',  # 版本号
           description='A plugin based on nonebot2, which is support XDU services.',
           long_description=long_description,
           long_description_content_type="text/markdown",
           author='longchengguxiao',
           author_email='1298919732@qq.com',
-          url='http://www.lcgx.space/home',
+          url='http://lcgx.xdu.org.cn/',
           include_package_data=True,
           install_requires=[
               "nonebot2>=2.0.0a16",
@@ -24,7 +24,8 @@ with open(os.path.join(path, "README.md"), "r", encoding="utf-8") as f:
               "httpx",
               "numpy",
               "jionlp",
-              "pycryptodome"
+              "pycryptodome",
+              "python-dateutil"
           ],
           license='AGPL-3.0 License',
           packages=find_packages(),
