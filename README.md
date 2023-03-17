@@ -80,11 +80,15 @@ python -m pip install nonebot_plugin_xdu_support
 <details>
 <summary>展开/收起</summary>
 
+### v0.4.5
+
++ 2023/03/17 新增 成绩查询功能
+
 ### v0.4.3
 
-+ 修改部分文字描述，更贴近于使用
++ 2023/03/06 修改部分文字描述，更贴近于使用
 
-+ 需求库中新增`python-dateutil`解决运行报错
++ 2023/03/06 需求库中新增`python-dateutil`解决运行报错
 
 ### v0.4.2
 
