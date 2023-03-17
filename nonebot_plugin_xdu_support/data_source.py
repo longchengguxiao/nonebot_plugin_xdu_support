@@ -1,6 +1,6 @@
-from typing import Any, Union
+from typing import Any, Union, Dict
 
-questions_single: dict[Union[str, Any], Union[str, Any]] = {
+questions_single: Dict[Union[str, Any], Union[str, Any]] = {
     "马克思恩格斯系统阐述历史唯物主义基本观点、实现历史观伟大变革的著作是（）\n[A]《共产党宣言》\n[B]《神圣家族》\n[C]《资本论》\n[D]《德意志意识形态》":"D",
     "19世纪西欧三大先进思潮为马克思主义的创立提供了直接的理论来源，其中为马克思主义哲学思想提供直接理论来源的是（）\n[A]德国古典哲学\n[B]英国经验论哲学\n[C]近代欧洲哲学\n[D]古希腊哲学":"A",
     "下列哪个不属于马克思主义的主要部分（）\n[A]政治学\n[B]科学社会主义\n[C]马克思主义哲学\n[D]政治经济学":"A",
