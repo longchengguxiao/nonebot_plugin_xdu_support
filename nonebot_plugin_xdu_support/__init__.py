@@ -18,7 +18,7 @@ import jionlp as jio
 import os
 import json
 import re
-from .model import check, cron_check, get_sport_record, get_timetable, get_whole_day_course, get_next_course, get_question, get_teaching_buildings, get_classroom, get_idle_classroom, get_url_marker, get_url_routeplan, get_min_distance_aed, des_encrypt, des_descrypt, analyse_best_idle_room, punch_daily_health, get_youthstudy_names, get_verify
+from .model import check, cron_check, get_sport_record, get_timetable, get_whole_day_course, get_next_course, get_question, get_teaching_buildings, get_classroom, get_idle_classroom, get_url_marker, get_url_routeplan, get_min_distance_aed, des_encrypt, des_descrypt, analyse_best_idle_room, punch_daily_health, get_youthstudy_names, get_verify, get_grade
 from .config import Config
 
 
@@ -159,6 +159,8 @@ idle_classroom_query = on_command(
 aed_search = on_command("aed", priority=6, block=True, aliases={"AED"})
 
 youthstudy = on_command("青年大学习", priority=5, block=True, aliases={"未完成学习"})
+
+grade = on_command("成绩查询", priority=5, block=True, aliases={"我的成绩", "查询成绩"})
 
 # 功能订阅-----------------------------------------------------------------
 
@@ -917,6 +919,28 @@ async def _(state: T_State, verify: str = ArgStr("verify")):
         await youthstudy.finish(msg)
     else:
         await youthstudy.finish("登录失败，可能是验证码错误或账号密码失效，请重试或检查账号密码")
+
+# 成绩查询---------------------------------------------------------------------------------
+
+
+@grade.handle()
+async def _(event: MessageEvent, bot: Bot):
+    flag, users = read_data(Path(XDU_SUPPORT_PATH, 'Ehall.txt'))
+    users_id = [x[0] for x in users]
+    user_id = str(event.user_id)
+    if user_id in users_id:
+        username = users[users_id.index(user_id)][1]
+        password = des_descrypt(
+            users[users_id.index(user_id)][2], DES_KEY).decode()
+
+        ses = EhallSession(username, password)
+        ses.use_app(4768574631264620)
+        msg, res = get_grade(ses)
+        await grade.send(res + "\n计算公式为sum(必修学分*必修课分数)/sum(必修学分)" + "\n\n" + "下面为近两学期成绩")
+        await asyncio.sleep(1)
+        await send_forward_msg(bot, event, "XD小助手", str(event.user_id), msg)
+    else:
+        await grade.finish("请先订阅成绩查询功能，再进行更新")
 
 # 文档操作----------------------------------------------------------------------------
 

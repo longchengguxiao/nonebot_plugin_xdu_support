@@ -25,7 +25,8 @@ with open(os.path.join(path, "README.md"), "r", encoding="utf-8") as f:
               "numpy",
               "jionlp",
               "pycryptodome",
-              "python-dateutil"
+              "python-dateutil",
+              "setuptools"
           ],
           license='AGPL-3.0 License',
           packages=find_packages(),

@@ -674,6 +674,114 @@ def get_youthstudy_names(ses: Session,
     return True, msg
 
 
+# 成绩查询-------------------------------------------------------------------------
+
+def get_terms(ses: EhallSession) -> List:
+    # res[0]['XNXQDM']
+    res = ses.post(
+        # 查询当前学年学期和上一个学年学期
+        'http://ehall.xidian.edu.cn/jwapp/sys/cjcx/modules/cjcx/cxdqxnxqhsygxnxq.do',
+    ).json()['datas']['cxdqxnxqhsygxnxq']['rows']
+    return res
+
+
+def get_grade(ses: EhallSession) -> (List, str):
+
+    msg = []
+
+    terms = [term["XNXQDM"] for term in get_terms(ses)]
+    querySetting = [
+        {
+            "name": "SFYX",
+            "caption": "是否有效",
+            "linkOpt": "AND",
+            "builderList": "cbl_m_List",
+            "builder": "m_value_equal",
+            "value": "1",
+            "value_display": "是"
+        },
+        {
+            "name": "SHOWMAXCJ",
+            "caption": "显示最高成绩",
+            "linkOpt": "AND",
+            "builderList": "cbl_m_List",
+            "builder": "m_value_equal",
+            "value": "0",
+            "value_display": "否"
+        }
+    ]
+
+    total = [0, 0]
+    course_ignore = [
+        '军事',
+        '形势与政策',
+        '创业基础',
+        '新生',
+        '写作与沟通',
+        '学科导论',
+        '心理',
+        '物理实验']
+    types_ignore = ['公共任选课', '集中实践环节', '拓展提高', '通识教育核心课', '专业选修课']
+    unpassed_course = {}
+
+    for i in ses.post(
+            'http://ehall.xidian.edu.cn/jwapp/sys/cjcx/modules/cjcx/xscjcx.do',
+            data={
+                'querySetting': json.dumps(querySetting),
+                '*order': '+XNXQDM,KCH,KXH',
+                'pageSize': 1000,
+                'pageNumber': 1
+            }
+    ).json()['datas']['xscjcx']['rows']:
+        flag = 0
+
+        for lx in types_ignore:
+            if i["KCLBDM_DISPLAY"].find(lx) != -1:
+                flag = 1
+                break
+
+        for kw in course_ignore:
+            if i["XSKCM"].find(kw) != -1:
+                flag = 1
+                break
+
+        if flag == 1:
+            i["XSKCM"] = '*' + i["XSKCM"]
+        else:
+            if i["SFJG"] == '1':  # 及格
+                if i["CXCKDM"] == '01':  # 初修
+                    total[0] += i["XF"] * i["ZCJ"]
+                    total[1] += i["XF"]
+                else:
+                    total[0] += i["XF"] * 60.0
+                    total[1] += i["XF"]
+
+        if i["SFJG"] == '0' and i["KCXZDM_DISPLAY"] == "必修":
+            unpassed_course[i["KCH"]] = i["XF"]
+        elif i["SFJG"] == '1' and i["KCH"] in unpassed_course.keys():
+            del unpassed_course[i["KCH"]]
+
+        roman_nums = str.maketrans({'Ⅰ': 'I',
+                                    'Ⅱ': 'II',
+                                    'Ⅲ': 'III',
+                                    'Ⅳ': 'IV',
+                                    'Ⅴ': 'V',
+                                    'Ⅵ': 'VI',
+                                    'Ⅶ': 'VII',
+                                    'Ⅷ': 'VIII',
+                                    })  # 一些终端无法正确打印罗马数字
+        i["XSKCM"] = i["XSKCM"].translate(roman_nums)
+        if i["XNXQDM"] in terms:
+            res = f'{i["XNXQDM"]} [{i["KCH"]}]{i["XSKCM"]}\n' \
+                  f'{i["KCXZDM_DISPLAY"]}\n' \
+                  f'{i["ZCJ"] if i["ZCJ"] else "还没出成绩"}\n' \
+                  f'{i["KCLBDM_DISPLAY"]}'
+            msg.append(res)
+    msg.append(f'未获得的学分有：{sum(unpassed_course.values())}')
+    msg.append('注：标记有*的课程以及未通过科目不计入均分')
+
+    return msg, f'入学来的加权平均成绩：{total[0] / total[1]:.2f}'
+
 # 加密解密-------------------------------------------------------------------------
 
 
