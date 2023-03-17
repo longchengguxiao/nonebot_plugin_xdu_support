@@ -772,7 +772,8 @@ def get_grade(ses: EhallSession) -> (List, str):
                                     })  # 一些终端无法正确打印罗马数字
         i["XSKCM"] = i["XSKCM"].translate(roman_nums)
         if i["XNXQDM"] in terms:
-            res = f'{i["XNXQDM"]} [{i["KCH"]}]{i["XSKCM"]}\n' \
+            res = f'{i["XNXQDM"]}\n' \
+                  f'[{i["KCH"]}]{i["XSKCM"]}\n' \
                   f'{i["KCXZDM_DISPLAY"]}\n' \
                   f'{i["ZCJ"] if i["ZCJ"] else "还没出成绩"}\n' \
                   f'{i["KCLBDM_DISPLAY"]}'
