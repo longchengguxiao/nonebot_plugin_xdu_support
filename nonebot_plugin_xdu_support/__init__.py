@@ -936,7 +936,7 @@ async def _(event: MessageEvent, bot: Bot):
         ses = EhallSession(username, password)
         ses.use_app(4768574631264620)
         msg, res = get_grade(ses)
-        await grade.send(res + "\n计算公式为sum(必修学分*必修课分数)/sum(必修学分)" + "\n\n" + "下面为近两学期成绩")
+        await grade.send(res + "\n计算公式为\nsum(必修学分*必修课分数)/sum(必修学分)" + "\n\n" + "下面为近两学期成绩")
         await asyncio.sleep(1)
         await send_forward_msg(bot, event, "XD小助手", str(event.user_id), msg)
     else:
