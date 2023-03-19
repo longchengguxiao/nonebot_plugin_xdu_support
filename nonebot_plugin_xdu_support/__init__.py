@@ -1021,7 +1021,7 @@ async def _(event: MessageEvent, state: T_State, ddl: str = ArgStr("ddl"), item:
         timenow = datetime.strptime(
             datetime.now().strftime('%Y-%m-%d'), '%Y-%m-%d')
         ans = [
-            f"{i}将在{d}截止,仅剩{datetime.strptime(d, '%Y-%m-%d') - timenow}天" for i,
+            f"{i}将在{d}截止,仅剩{(datetime.strptime(d, '%Y-%m-%d') - timenow).days}天" for i,
             d in items]
         await asyncio.sleep(1)
         msg = "添加成功！目前您仍有以下待办：\n"
@@ -1071,7 +1071,7 @@ async def _(event: MessageEvent, state: T_State, item: str = ArgStr("item")):
         await remind_finish.finish("已取消本次操作")
     try:
         item = int(item)
-    except:
+    except BaseException:
         pass
     if isinstance(item, int):
         if item < len(items):
@@ -1118,7 +1118,7 @@ async def _(event: PokeNotifyEvent):
             timenow = datetime.strptime(
                 datetime.now().strftime('%Y-%m-%d'), '%Y-%m-%d')
             ans = [
-                f"{i}将在{d}截止,仅剩{datetime.strptime(d, '%Y-%m-%d')-timenow}天" for i,
+                f"{i}将在{d}截止,仅剩{(datetime.strptime(d, '%Y-%m-%d')-timenow).days}天" for i,
                 d in items]
             msg = "目前您仍有以下待办：\n"
             for i in range(len(ans)):
