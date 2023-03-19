@@ -176,9 +176,9 @@ examination = on_command(
         "我的考试",
         "查询考试"})
 
-remind = on_command("提醒", priority=5, block=True, aliases={"记事"})
+remind = on_command("提醒", priority=5, block=True, aliases={"记事", "添加"})
 
-remind_finish = on_command("完成", priority=5, block=True, aliases={"结束"})
+remind_finish = on_command("完成", priority=5, block=True, aliases={"结束", "移除"})
 
 remind_poke = on_notice(priority=5, block=True)
 
@@ -1071,6 +1071,9 @@ async def _(event: MessageEvent, state: T_State, item: str = ArgStr("item")):
         await remind_finish.finish("已取消本次操作")
     try:
         item = int(item)
+    except:
+        pass
+    if isinstance(item, int):
         if item < len(items):
             removed_item = items.pop(item)
             write_data(
@@ -1082,7 +1085,7 @@ async def _(event: MessageEvent, state: T_State, item: str = ArgStr("item")):
             await remind_finish.finish(f"成功移除事项{removed_item[0]}")
         else:
             await remind_finish.finish(f"不存在编号为{item}的事项，请检查输入")
-    except:
+    else:
         item_name = [x[0] for x in items]
         if item in item_name:
             removed_item = items.pop(item_name.index(item))
