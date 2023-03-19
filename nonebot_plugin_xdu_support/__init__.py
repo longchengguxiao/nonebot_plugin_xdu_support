@@ -18,7 +18,7 @@ import jionlp as jio
 import os
 import json
 import re
-from .model import check, cron_check, get_sport_record, get_timetable, get_whole_day_course, get_next_course, get_question, get_teaching_buildings, get_classroom, get_idle_classroom, get_url_marker, get_url_routeplan, get_min_distance_aed, des_encrypt, des_descrypt, analyse_best_idle_room, punch_daily_health, get_youthstudy_names, get_verify, get_grade
+from .model import check, cron_check, get_sport_record, get_timetable, get_whole_day_course, get_next_course, get_question, get_teaching_buildings, get_classroom, get_idle_classroom, get_url_marker, get_url_routeplan, get_min_distance_aed, des_encrypt, des_descrypt, analyse_best_idle_room, punch_daily_health, get_youthstudy_names, get_verify, get_grade, get_examtime
 from .config import Config
 
 
@@ -953,7 +953,6 @@ async def _(event: MessageEvent, bot: Bot):
         username = users[users_id.index(user_id)][1]
         password = des_descrypt(
             users[users_id.index(user_id)][2], DES_KEY).decode()
-
         ses = EhallSession(username, password)
         ses.use_app(4768574631264620)
         msg, res = get_grade(ses)
@@ -965,7 +964,36 @@ async def _(event: MessageEvent, bot: Bot):
 
 # 考试查询-----------------------------------------------------------------------------------
 
-
+@examination.handle()
+async def _(event:MessageEvent, bot:Bot, args:Message=CommandArg()):
+    flag, users = read_data(Path(XDU_SUPPORT_PATH, 'Ehall.txt'))
+    users_id = [x[0] for x in users]
+    user_id = str(event.user_id)
+    if user_id in users_id:
+        username = users[users_id.index(user_id)][1]
+        password = des_descrypt(
+            users[users_id.index(user_id)][2], DES_KEY).decode()
+        ses = EhallSession(username, password)
+        msg = args.extract_plain_text().strip().split(" ")
+        if msg and msg[0] in ["上学期","上一学期", "前一学期"]:
+            term, examtimes = get_examtime(1,ses)
+        else:
+            term, examtimes = get_examtime(0, ses)
+        examed = []
+        examed.append(f"{term}学期的已完成考试")
+        unexamed = []
+        unexamed.append(f"{term}学期的未完成考试安排为")
+        for examtime in examtimes:
+            examtime_day = datetime.strptime(examtime["KSSJMS"].split(" ")[0], "%Y-%m-%d")
+            timenow = datetime.strptime(
+                datetime.now().strftime('%Y-%m-%d'), '%Y-%m-%d')
+            if examtime_day-timenow >=timedelta(days=0):
+                unexamed.append(f"在{examtime['KSSJMS']}\n****************\n你有一门{examtime['KCM']}的考试\n****************\n在{examtime['JASDM']}教室，座号为{examtime['ZWH']}\n****************\n任课教师为{examtime['ZJJSXM']}")
+            else:
+                examed.append(f"{examtime['KCM']}")
+        await send_forward_msg(bot, event, "XD小助手", str(event.user_id), unexamed+examed)
+    else:
+        await examination.finish("请先订阅考试查询功能,再进行查询")
 # 提醒记事------------------------------------------------------------------------------------
 
 @remind.handle()
@@ -1210,9 +1238,9 @@ async def send_forward_msg(
     event: MessageEvent,
     name: str,
     uin: str,
-    msgs: List[Union[MessageSegment, Message]],
+    msgs: List[Union[MessageSegment, Message, str]],
 ) -> dict:
-    def to_json(msg: Union[MessageSegment, Message]):
+    def to_json(msg: Union[MessageSegment, Message, str]):
         return {
             "type": "node",
             "data": {

@@ -785,6 +785,24 @@ def get_grade(ses: EhallSession) -> (List, str):
 
     return msg, f'入学来的加权平均成绩：{total[0] / total[1]:.2f}'
 
+# 考试时间获取--------------------------------------------------------------------
+
+def get_examtime(flag:int, ses:EhallSession)->(str, List):
+    terms_url = "https://ehall.xidian.edu.cn/jwapp/sys/studentWdksapApp/modules/wdksap/xnxqcx.do"
+    term = ses.post(terms_url,
+                    data={
+                        "*order": "-PX,-DM"
+                    }).json()["datas"]["xnxqcx"]["rows"][flag]["DM"]
+
+    examtime_url = "https://ehall.xidian.edu.cn/jwapp/sys/studentWdksapApp/modules/wdksap/wdksap.do"
+    data = {
+        "XNXQDM": term,
+        "*order": "-KSRQ,-KSSJMS"
+    }
+    examtime = ses.post(examtime_url, data=data).json()["datas"]["wdksap"]["rows"]
+
+    return term, examtime
+
 # 加密解密-------------------------------------------------------------------------
 
 
