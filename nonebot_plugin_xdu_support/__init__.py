@@ -1082,7 +1082,7 @@ async def _(event: MessageEvent, state: T_State, item: str = ArgStr("item")):
             await remind_finish.finish(f"成功移除事项{removed_item[0]}")
         else:
             await remind_finish.finish(f"不存在编号为{item}的事项，请检查输入")
-    except BaseException:
+    except:
         item_name = [x[0] for x in items]
         if item in item_name:
             removed_item = items.pop(item_name.index(item))
