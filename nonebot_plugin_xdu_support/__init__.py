@@ -1189,7 +1189,7 @@ async def run_at_22_30():
             if overtime:
                 msg += "****************\n有以下事项已过期，已经自动删除，请注意！\n"
                 msg += "\n".join(overtime)
-            await bot.send_private_msg(user_id=int(user[0]), message=msg)
+            await bot.send_private_msg(user_id=int(user), message=msg)
 
 
 # 文档操作----------------------------------------------------------------------------
