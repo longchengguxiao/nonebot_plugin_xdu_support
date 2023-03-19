@@ -38,9 +38,9 @@ MODLE = {
     "马原测试": "MY",
     "空闲教室查询": "Ehall",
     "青年大学习": "Youth",
-    "成绩查询":"Ehall",
-    "提醒":"TX",
-    "考试查询":"Ehall"
+    "成绩查询": "Ehall",
+    "提醒": "TX",
+    "考试查询": "Ehall"
 }
 
 MODEL_NEED = {
@@ -49,7 +49,7 @@ MODEL_NEED = {
     "XK": ["学号", "选课密码"],
     "MY": ["随便输入一些吧，反正也不需要补充信息~"],
     "Youth": ["陕西青少年大数据服务平台账号", "青少年大数据密码"],
-    "TX":["随便输入一些吧，反正也不需要补充信息~"]
+    "TX": ["随便输入一些吧，反正也不需要补充信息~"]
 }
 
 MODEL_RUN_TIME = {
@@ -62,8 +62,8 @@ MODEL_RUN_TIME = {
     "空闲教室查询": "主动:返回查找日期的空闲教室，会经过优化",
     "青年大学习": "主动返回本组织内当期青年大学习未完成名单",
     "成绩查询": "返回所有必修课均分以及近两学期课程的详细分数",
-    "提醒":"记下哪些ddl吧，通过戳一戳返回",
-    "考试查询":"返回最近学期的考试时间"
+    "提醒": "记下哪些ddl吧，通过戳一戳返回",
+    "考试查询": "返回最近学期的考试时间"
 }
 
 TIME_SCHED = [
@@ -168,7 +168,13 @@ youthstudy = on_command("青年大学习", priority=5, block=True, aliases={"未
 
 grade = on_command("成绩查询", priority=5, block=True, aliases={"我的成绩", "查询成绩"})
 
-examination = on_command("考试查询", priority=5, block=True, aliases={"我的考试","查询考试"})
+examination = on_command(
+    "考试查询",
+    priority=5,
+    block=True,
+    aliases={
+        "我的考试",
+        "查询考试"})
 
 remind = on_command("提醒", priority=5, block=True, aliases={"记事"})
 
@@ -617,9 +623,6 @@ async def run_at_22():
                 if message:
                     await bot.send_private_msg(user_id=int(user[0]), message=message)
 
-
-
-
     else:
         await bot.send_private_msg(user_id=int(superusers[0]),
                                    message='课表提醒读取数据失败，快维修')
@@ -963,12 +966,10 @@ async def _(event: MessageEvent, bot: Bot):
 # 考试查询-----------------------------------------------------------------------------------
 
 
-
-
 # 提醒记事------------------------------------------------------------------------------------
 
 @remind.handle()
-async def _(event:MessageEvent, state:T_State, args:Message = CommandArg()):
+async def _(event: MessageEvent, state: T_State, args: Message = CommandArg()):
     flag, users = read_data(Path(XDU_SUPPORT_PATH, 'TX.txt'))
     users_id = [x[0] for x in users]
     user_id = str(event.user_id)
@@ -982,21 +983,26 @@ async def _(event:MessageEvent, state:T_State, args:Message = CommandArg()):
                 time_select = jio.parse_time(
                     msg[1], time_base=time.time()).get("time")[0].split(" ")[0]
                 state["ddl"] = time_select
-            except:
+            except BaseException:
                 pass
     else:
         await remind.finish("请先订阅提醒功能，再进行添加")
 
+
 @remind.got("item", prompt="请输入要完成的事项")
-async def _(event:MessageEvent,state:T_State, item:str = ArgStr("item")):
+async def _(event: MessageEvent, state: T_State, item: str = ArgStr("item")):
     if item in ["取消", "算了"]:
         await remind.finish("已取消本次操作")
     user_id = str(event.user_id)
-    items, _ = read_data(Path(os.path.join(XDU_SUPPORT_PATH, f"{user_id}todolist.txt")))
+    items, _ = read_data(
+        Path(
+            os.path.join(
+                XDU_SUPPORT_PATH, f"{user_id}todolist.txt")))
     state["items"] = items
 
-@remind.got("ddl",prompt="请输入截止时间")
-async def _(event:MessageEvent, state:T_State, ddl:str = ArgStr("ddl"), item:str = ArgStr("item")):
+
+@remind.got("ddl", prompt="请输入截止时间")
+async def _(event: MessageEvent, state: T_State, ddl: str = ArgStr("ddl"), item: str = ArgStr("item")):
     user_id = str(event.user_id)
     items = state["items"]
     if ddl in ["取消", "算了"]:
@@ -1006,9 +1012,17 @@ async def _(event:MessageEvent, state:T_State, ddl:str = ArgStr("ddl"), item:str
             ddl,
             time_base=time.time()).get("time")[0].split(" ")[0]
         items.append([item, ddl_])
-        _ = write_data(Path(os.path.join(XDU_SUPPORT_PATH, f"{user_id}todolist.txt")), items)
-        timenow = datetime.strptime(datetime.now().strftime('%Y-%m-%d'), '%Y-%m-%d')
-        ans = [f"{i}将在{d}截止,仅剩{datetime.strptime(d, '%Y-%m-%d') - timenow}天" for i, d in items]
+        _ = write_data(
+            Path(
+                os.path.join(
+                    XDU_SUPPORT_PATH,
+                    f"{user_id}todolist.txt")),
+            items)
+        timenow = datetime.strptime(
+            datetime.now().strftime('%Y-%m-%d'), '%Y-%m-%d')
+        ans = [
+            f"{i}将在{d}截止,仅剩{datetime.strptime(d, '%Y-%m-%d') - timenow}天" for i,
+            d in items]
         await asyncio.sleep(1)
         msg = "添加成功！目前您仍有以下待办：\n"
         for i in range(len(ans)):
@@ -1019,12 +1033,15 @@ async def _(event:MessageEvent, state:T_State, ddl:str = ArgStr("ddl"), item:str
 
 
 @remind_finish.handle()
-async def _(event:MessageEvent, state:T_State, args:Message = CommandArg()):
+async def _(event: MessageEvent, state: T_State, args: Message = CommandArg()):
     flag, users = read_data(Path(XDU_SUPPORT_PATH, 'TX.txt'))
     users_id = [x[0] for x in users]
     user_id = str(event.user_id)
     if user_id in users_id:
-        items, _ = read_data(Path(os.path.join(XDU_SUPPORT_PATH, f"{user_id}todolist.txt")))
+        items, _ = read_data(
+            Path(
+                os.path.join(
+                    XDU_SUPPORT_PATH, f"{user_id}todolist.txt")))
         if not items:
             await remind_finish.finish("已经没有ddl啦，无需再进行删除哦~")
         msg = args.extract_plain_text().strip().split(" ")
@@ -1032,7 +1049,7 @@ async def _(event:MessageEvent, state:T_State, args:Message = CommandArg()):
             try:
                 int(msg[0])
                 state["item"] = int(msg[0])
-            except:
+            except BaseException:
                 state["item"] = msg[0]
             state["items"] = items
         else:
@@ -1045,43 +1062,61 @@ async def _(event:MessageEvent, state:T_State, args:Message = CommandArg()):
     else:
         await remind.finish("您暂未订阅提醒功能哦~")
 
+
 @remind_finish.got("item", prompt="请输入您完成的事项名称或序号")
-async def _(event:MessageEvent,state:T_State ,item:str = ArgStr("item")):
+async def _(event: MessageEvent, state: T_State, item: str = ArgStr("item")):
     user_id = str(event.user_id)
     items = state["items"]
     if item in ["取消", "算了"]:
         await remind_finish.finish("已取消本次操作")
     try:
         item = int(item)
-        if item <len(items):
+        if item < len(items):
             removed_item = items.pop(item)
-            write_data(Path(os.path.join(XDU_SUPPORT_PATH, f"{user_id}todolist.txt")), items)
+            write_data(
+                Path(
+                    os.path.join(
+                        XDU_SUPPORT_PATH,
+                        f"{user_id}todolist.txt")),
+                items)
             await remind_finish.finish(f"成功移除事项{removed_item[0]}")
         else:
             await remind_finish.finish(f"不存在编号为{item}的事项，请检查输入")
-    except:
+    except BaseException:
         item_name = [x[0] for x in items]
         if item in item_name:
             removed_item = items.pop(item_name.index(item))
-            write_data(Path(os.path.join(XDU_SUPPORT_PATH, f"{user_id}todolist.txt")), items)
+            write_data(
+                Path(
+                    os.path.join(
+                        XDU_SUPPORT_PATH,
+                        f"{user_id}todolist.txt")),
+                items)
             await remind_finish.finish(f"成功移除事项{removed_item[0]}")
         else:
             await remind_finish.finish(f"没有名称为{item}的事项，请检查输入")
 
+
 @remind_poke.handle()
-async def _(event:PokeNotifyEvent):
+async def _(event: PokeNotifyEvent):
     flag, users = read_data(Path(XDU_SUPPORT_PATH, 'TX.txt'))
     users_id = [x[0] for x in users]
     user_id = str(event.user_id)
     await asyncio.sleep(1)
     if user_id in users_id:
-        items, _ = read_data(Path(os.path.join(XDU_SUPPORT_PATH, f"{user_id}todolist.txt")))
+        items, _ = read_data(
+            Path(
+                os.path.join(
+                    XDU_SUPPORT_PATH, f"{user_id}todolist.txt")))
         await asyncio.sleep(1)
         if not items:
             await remind_poke.finish("您暂时没有待办事项哦~")
         else:
-            timenow = datetime.strptime(datetime.now().strftime('%Y-%m-%d'), '%Y-%m-%d')
-            ans = [f"{i}将在{d}截止,仅剩{datetime.strptime(d, '%Y-%m-%d')-timenow}天" for i, d in items]
+            timenow = datetime.strptime(
+                datetime.now().strftime('%Y-%m-%d'), '%Y-%m-%d')
+            ans = [
+                f"{i}将在{d}截止,仅剩{datetime.strptime(d, '%Y-%m-%d')-timenow}天" for i,
+                d in items]
             msg = "目前您仍有以下待办：\n"
             for i in range(len(ans)):
                 msg += f"****************\n{i}. {ans[i]}\n"
@@ -1089,22 +1124,31 @@ async def _(event:PokeNotifyEvent):
     else:
         await remind.finish("您暂未订阅提醒功能哦~")
 
+
 @scheduler.scheduled_job("cron", hour="22", minute="5")
 async def run_at_22_30():
     bot = nonebot.get_bot()
     flag, users_ = read_data(Path(XDU_SUPPORT_PATH, 'TX.txt'))
     users_id = [x[0] for x in users_]
     for user in users_id:
-        if os.path.exists(Path(os.path.join(XDU_SUPPORT_PATH, f"{user}todolist.txt"))):
-            items, _ = read_data(Path(os.path.join(XDU_SUPPORT_PATH, f"{user}todolist.txt")))
-            timenow = datetime.strptime(datetime.now().strftime('%Y-%m-%d'), '%Y-%m-%d')
+        if os.path.exists(
+                Path(
+                    os.path.join(
+                XDU_SUPPORT_PATH,
+                f"{user}todolist.txt"))):
+            items, _ = read_data(
+                Path(
+                    os.path.join(
+                        XDU_SUPPORT_PATH, f"{user}todolist.txt")))
+            timenow = datetime.strptime(
+                datetime.now().strftime('%Y-%m-%d'), '%Y-%m-%d')
             await asyncio.sleep(1)
             msg = "目前您有以下待办距离ddl时间较紧，明天请合理安排时间：\n"
             overtime = []
             for i in range(len(items)):
-                ddltime = datetime.strptime(items[i][1],'%Y-%m-%d')
-                resttime = ddltime-timenow
-                if timedelta(days=0) <= resttime< timedelta(days=5):
+                ddltime = datetime.strptime(items[i][1], '%Y-%m-%d')
+                resttime = ddltime - timenow
+                if timedelta(days=0) <= resttime < timedelta(days=5):
                     msg += f"****************\n{items[i][0]}距离截止日期{items[i][1]}仅剩余{resttime.days}天\n"
                 elif resttime < timedelta(days=0):
                     overtime.append(items[i][0])
