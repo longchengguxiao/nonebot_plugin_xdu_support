@@ -994,7 +994,7 @@ async def _(event: MessageEvent, state: T_State, item: str = ArgStr("item")):
     if item in ["取消", "算了"]:
         await remind.finish("已取消本次操作")
     user_id = str(event.user_id)
-    items, _ = read_data(
+    _, items = read_data(
         Path(
             os.path.join(
                 XDU_SUPPORT_PATH, f"{user_id}todolist.txt")))
@@ -1038,7 +1038,7 @@ async def _(event: MessageEvent, state: T_State, args: Message = CommandArg()):
     users_id = [x[0] for x in users]
     user_id = str(event.user_id)
     if user_id in users_id:
-        items, _ = read_data(
+        _, items = read_data(
             Path(
                 os.path.join(
                     XDU_SUPPORT_PATH, f"{user_id}todolist.txt")))
@@ -1104,7 +1104,7 @@ async def _(event: PokeNotifyEvent):
     user_id = str(event.user_id)
     await asyncio.sleep(1)
     if user_id in users_id:
-        items, _ = read_data(
+        _, items = read_data(
             Path(
                 os.path.join(
                     XDU_SUPPORT_PATH, f"{user_id}todolist.txt")))
@@ -1136,7 +1136,7 @@ async def run_at_22_30():
                     os.path.join(
                 XDU_SUPPORT_PATH,
                 f"{user}todolist.txt"))):
-            items, _ = read_data(
+            _, items = read_data(
                 Path(
                     os.path.join(
                         XDU_SUPPORT_PATH, f"{user}todolist.txt")))
