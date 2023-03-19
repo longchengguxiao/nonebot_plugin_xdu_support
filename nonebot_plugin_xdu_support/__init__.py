@@ -1011,6 +1011,9 @@ async def _(event: MessageEvent, state: T_State, ddl: str = ArgStr("ddl"), item:
         ddl_ = jio.parse_time(
             ddl,
             time_base=time.time()).get("time")[0].split(" ")[0]
+        item_name = [x[0] for x in items]
+        if item in item_name and ddl_ == item[item_name.index(item)][1]:
+            await remind.finish(f"已经添加过截止日期为{ddl_}的{item}啦，不用再重复添加啦！")
         items.append([item, ddl_])
         _ = write_data(
             Path(
