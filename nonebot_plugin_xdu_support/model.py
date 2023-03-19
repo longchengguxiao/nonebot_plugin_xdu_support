@@ -469,6 +469,8 @@ def analyse_best_idle_room(idle_room: Dict[str,
     return message
 
 
+# AED查询---------------------------------------------------------------------------------
+
 def get_min_distance_aed(now_lat: str = "34.12501587001219",
                          now_lng: str = "108.8326315482191") -> (Dict, float, List):
     response = requests.get(
