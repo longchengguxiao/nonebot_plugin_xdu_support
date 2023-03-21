@@ -1044,7 +1044,7 @@ async def _(event: MessageEvent, state: T_State, args: Message = CommandArg()):
     user_id = str(event.user_id)
     if user_id in users_id:
         msg = args.extract_plain_text().strip().split(" ")
-        if msg and len(msg) == 1:
+        if len(msg) == 1 and msg[0]!="":
             state["item"] = msg[0]
         elif len(msg) == 2:
             state["item"] = msg[0]
