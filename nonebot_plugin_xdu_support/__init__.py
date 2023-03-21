@@ -162,6 +162,8 @@ mayuan = on_command("马原", priority=6, block=True)
 idle_classroom_query = on_command(
     "空闲教室查询", priority=6, block=True, aliases={
         "空闲教室查看", "查询空闲教室", "查看空闲教室"})
+stop_classroom = on_command("添加停止教室", priority=5, block=True, aliases={"停止教室添加"})
+
 aed_search = on_command("aed", priority=6, block=True, aliases={"AED"})
 
 youthstudy = on_command("青年大学习", priority=5, block=True, aliases={"未完成学习"})
@@ -688,6 +690,40 @@ async def _(event: MessageEvent, state: T_State, user_ans: str = ArgStr("user_an
 # 空闲教室查询------------------------------------------------------------------------
 
 
+@stop_classroom.handle()
+async def _(event:MessageEvent,state:T_State ,args:Message=CommandArg()):
+    flag, users = read_data(Path(XDU_SUPPORT_PATH, 'Ehall.txt'))
+    users_id = [x[0] for x in users]
+    user_id = str(event.user_id)
+    if user_id in users_id:
+        msg = args.extract_plain_text().strip().split(" ")
+        if msg:
+            msg_ = msg[0].split("-")
+            if len(msg_) !=2 or msg_[0] not in ["A","B","C","D", "EI", "EII", "EIII", "信远I", "信远II","信远III"]:
+                await stop_classroom.finish("教室格式有误，例如B-108，信远I-108")
+            else:
+                state["stoproom"] = msg[0]
+    else:
+        await stop_classroom.finish("请先订阅空闲教室功能，再进行反馈")
+
+
+@stop_classroom.got("stoproom", prompt="请输入需要补充的停止教室")
+async def _(stoproom:str = ArgStr("stoproom")):
+    stoproom_ = stoproom.split("-")
+    if len(stoproom_) != 2 or stoproom_[0] not in ["A", "B", "C", "D", "EI", "EII", "EIII", "信远I", "信远II", "信远III"]:
+        await stop_classroom.reject_arg("stoproom",prompt="教室格式有误，例如B-108，信远I-108,请检查输入")
+    else:
+        if os.path.exists(os.path.join(XDU_SUPPORT_PATH, "stop_classroom.txt")):
+            with open(os.path.join(XDU_SUPPORT_PATH, "stop_classroom.txt"), "r", encoding="utf-8") as f:
+                stoprooms = f.readlines()
+        else:
+            stoprooms = []
+        stoprooms.append(stoproom)
+        with open(os.path.join(XDU_SUPPORT_PATH, "stop_classroom.txt"), "w", encoding="utf-8") as f:
+            f.write("\n".join(stoprooms))
+        await stop_classroom.finish(f"已经将教室{stoproom}添加到停止教室列表中，感谢您提供帮助，相信我们的服务会越来越好")
+
+
 @idle_classroom_query.handle()
 async def _(bot: Bot, event: MessageEvent, state: T_State, args: Message = CommandArg()):
     flag, users = read_data(Path(XDU_SUPPORT_PATH, 'Ehall.txt'))
@@ -780,7 +816,12 @@ async def _(event: MessageEvent, state: T_State, time_selector: str = ArgStr("ti
                 XDU_SUPPORT_PATH,
                 "idle_classroom_query",
                 f"{time_}_{build}_idle_rooms.txt")):
-            result = await get_idle_classroom(ses, rooms, time_)
+            if os.path.exists(os.path.join(XDU_SUPPORT_PATH, "stop_classroom.txt")):
+                with open(os.path.join(XDU_SUPPORT_PATH, "stop_classroom.txt"), "r", encoding="utf-8") as f:
+                    stoprooms = f.readlines()
+            else:
+                stoprooms = []
+            result = await get_idle_classroom(ses, rooms, time_, stoprooms)
             with open(os.path.join(XDU_SUPPORT_PATH, "idle_classroom_query", f'{time_}_{build}_idle_rooms.txt'), 'w', encoding='utf-8') as f:
                 f.write(str(result))
         else:

@@ -327,15 +327,15 @@ def get_classroom(ses: EhallSession, build: str) -> List:
             ["cxjsqk"]["rows"] if "休息室" not in x["JASMC"]]
 
 
-async def httpx_client_post(cookies: RequestsCookieJar, url: str, results: Dict[str, List], data: Dict, s: int, e: int, room: str):
+async def httpx_client_post(cookies: RequestsCookieJar, url: str, results: Dict[str, List], data: Dict, s: int, e: int, room: str, stop_classroom:List):
     async with httpx.AsyncClient(cookies=cookies) as client:
         resp = (await client.post(url, data=data)).json()
-        if not resp["datas"]["xdcxkxjsxq"]["rows"]:
+        if not resp["datas"]["xdcxkxjsxq"]["rows"] and room not in stop_classroom:
             results[f"{s}-{e}"].append(room)
 
 
 async def get_idle_classroom(ses: EhallSession, rooms: List,
-                             time_: str) -> Dict[str, List[str]]:
+                             time_: str, stop_classroom:List) -> Dict[str, List[str]]:
     y, m, d = time_.split("-")
     if 1 <= int(m) <= 7:
         XN = f'{int(y)-1}-{y}'
@@ -391,7 +391,8 @@ async def get_idle_classroom(ses: EhallSession, rooms: List,
                             "XQ": str(XQJ)},
                         s=s,
                         e=e,
-                        room=room)))
+                        room=room,
+                        stop_classroom=stop_classroom)))
     await asyncio.wait(tasks)
 
     # 储存方式为{'1-2':['B-102',...]}
@@ -436,13 +437,9 @@ def analyse_best_idle_room(idle_room: Dict[str,
                 course_time = int(list(today_course.keys())[i])
                 course_floor = course_rooms[i][0]
                 if course_time != 4:
-                    for room in idle_room[time_sche[course_time + 1]]:
-                        if room.split("-")[1][0] == course_floor:
-                            result.append(room.split("-")[1])
+                    result += [room.split("-")[1] for room in idle_room[time_sche[course_time + 1]] if room.split("-")[1][0] == course_floor]
                 if course_time != 0:
-                    for room in idle_room[time_sche[course_time - 1]]:
-                        if room.split("-")[1][0] == course_floor:
-                            result.append(room.split("-")[1])
+                    result += [room.split("-")[1] for room in idle_room[time_sche[course_time - 1]] if room.split("-")[1][0] == course_floor]
                 result = [abs(int(x) - int(course_rooms[i])) for x in result]
                 collection_rooms = dict(Counter(result))
                 collection_rooms = sorted(
