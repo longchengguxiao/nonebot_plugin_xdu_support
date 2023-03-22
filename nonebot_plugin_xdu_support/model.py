@@ -331,7 +331,6 @@ async def httpx_client_post(cookies: RequestsCookieJar, url: str, results: Dict[
     async with httpx.AsyncClient(cookies=cookies) as client:
         resp = (await client.post(url, data=data)).json()
         if not resp["datas"]["xdcxkxjsxq"]["rows"] and room not in stop_classroom:
-            print(room, stop_classroom)
             results[f"{s}-{e}"].append(room)
 
 
