@@ -1220,16 +1220,22 @@ async def run_at_22_30():
             await asyncio.sleep(1)
             msg = "目前您有以下待办距离ddl时间较紧，明天请合理安排时间：\n"
             overtime = []
+            intime = []
             for i in range(len(items)):
+                flag2 = 0
                 ddltime = datetime.strptime(items[i][1], '%Y-%m-%d')
                 resttime = ddltime - timenow
                 if timedelta(days=0) <= resttime < timedelta(days=5):
                     msg += f"****************\n{items[i][0]}距离截止日期{items[i][1]}仅剩余{resttime.days}天\n"
                 elif resttime < timedelta(days=0):
                     overtime.append(items[i][0])
+                    flag2 = 1
+                if flag2 == 0:
+                    intime.append(items[i])
             if overtime:
                 msg += "****************\n有以下事项已过期，已经自动删除，请注意！\n"
                 msg += "\n".join(overtime)
+                _ = write_data(Path(os.path.join(XDU_SUPPORT_PATH, f"{user}todolist.txt")), intime)
             await bot.send_private_msg(user_id=int(user), message=msg)
 
 
