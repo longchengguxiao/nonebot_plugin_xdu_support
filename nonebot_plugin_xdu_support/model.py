@@ -35,13 +35,15 @@ words = [
     '考试',
     "xdu功能订阅",
     "xdu功能退订",
-    "更新课表",
     "青年大学习",
     '空闲教室',
     "成绩",
-    "信远"
+    "信远",
+    "更新",
+    "课表"
 ]
 search_wd = ["课表", "体育打卡", "成绩", "考试"]
+
 
 Model = {
     "体育打卡": "体育打卡",
@@ -454,14 +456,14 @@ def analyse_best_idle_room(idle_room: Dict[str,
         today_course = timetable.get(time_, None)
         course_locations = [x["location"] for x in today_course.values()]
         course_buildings = [
-            x.split("-")[0] if x != "待定" else x for x in course_locations]
+            x.split("-")[0] if x != "待定" or x != "在线导学" else x for x in course_locations]
         course_rooms = [
-            x.split("-")[1] if x != "待定" else x for x in course_locations]
+            x.split("-")[1] if x != "待定" or x != "在线导学" else x for x in course_locations]
 
         flag = 0
         message = f"结合您{time_}的课表\n****************\n"
         for i in range(len(course_buildings)):
-            if course_buildings[i] == "待定":
+            if course_buildings[i] == "待定" or course_buildings[i] == "在线导学":
                 continue
             result = []
             # 有同一栋楼
@@ -900,10 +902,7 @@ def get_handle_event(
     for wd in words:
         jieba.add_word(wd)
     word_list = lcut(tx)
-    for search in search_wd:
-        if search in word_list:
-            msg_event = generate_event(event, f"{search}查询")
-            return msg_event
+
     if "订阅" in word_list:
         for ex_md in exist_md:
             if ex_md in word_list:
@@ -915,6 +914,13 @@ def get_handle_event(
                 msg_event = generate_event(event, f"xdu功能退订 {Model[ex_md]}")
                 return msg_event
     else:
+        for search in search_wd:
+            if search in word_list:
+                if search == "课表" and "更新" in word_list:
+                    msg_event = generate_event(event, f"更新课表")
+                else:
+                    msg_event = generate_event(event, f"{search}查询")
+                return msg_event
         if "空闲教室" in word_list:
             build = ""
             for wd in word_list:
@@ -941,6 +947,9 @@ def get_handle_event(
                     time_select = ""
                 msg_event = generate_event(
                     event, f"提醒 {event_name} {time_select}")
+            return msg_event
+        elif "青年大学习" in word_list:
+            msg_event = generate_event(event, "青年大学习")
             return msg_event
         else:
             return ""
