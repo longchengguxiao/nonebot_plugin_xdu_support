@@ -1,24 +1,26 @@
-from nonebot_plugin_apscheduler import scheduler
-import nonebot
-from nonebot.plugin import on_command, on_notice
-from nonebot.adapters.onebot.v11 import PrivateMessageEvent, GroupMessageEvent, Message, MessageEvent, MessageSegment, Bot, PokeNotifyEvent
-from nonebot.typing import T_State
-from nonebot.params import ArgStr, CommandArg, Arg
-from nonebot import require
-
-import requests
-from typing import List, Union
-from libxduauth import EhallSession, SportsSession, XKSession
-from builtins import ConnectionError
-from pathlib import Path
-import asyncio
-from datetime import datetime, timedelta
 import time
-import jionlp as jio
+import re
+import asyncio
 import os
 import json
-import re
-from .model import check, cron_check, get_sport_record, get_timetable, get_whole_day_course, get_next_course, get_question, get_teaching_buildings, get_classroom, get_idle_classroom, get_url_marker, get_url_routeplan, get_min_distance_aed, des_encrypt, des_descrypt, analyse_best_idle_room, punch_daily_health, get_youthstudy_names, get_verify, get_grade, get_examtime
+import requests
+from builtins import ConnectionError
+from pathlib import Path
+from datetime import datetime, timedelta
+from typing import List, Union
+
+from nonebot_plugin_apscheduler import scheduler
+from nonebot.plugin import on_command, on_notice, on_message
+from nonebot.adapters.onebot.v11 import PrivateMessageEvent, GroupMessageEvent, Message, MessageEvent, MessageSegment, Bot, PokeNotifyEvent, PRIVATE_FRIEND
+from nonebot.typing import T_State
+from nonebot.params import ArgStr, CommandArg, Arg, EventPlainText
+from nonebot.message import handle_event
+from nonebot import require
+import nonebot
+
+import jionlp as jio
+from libxduauth import EhallSession, SportsSession, XKSession
+from .model import check, cron_check, get_sport_record, get_timetable, get_whole_day_course, get_next_course, get_question, get_teaching_buildings, get_classroom, get_idle_classroom, get_url_marker, get_url_routeplan, get_min_distance_aed, des_encrypt, des_descrypt, analyse_best_idle_room, punch_daily_health, get_youthstudy_names, get_verify, get_grade, get_examtime, get_handle_event
 from .config import Config
 
 
@@ -162,7 +164,11 @@ mayuan = on_command("马原", priority=6, block=True)
 idle_classroom_query = on_command(
     "空闲教室查询", priority=6, block=True, aliases={
         "空闲教室查看", "查询空闲教室", "查看空闲教室"})
-stop_classroom = on_command("添加停止教室", priority=5, block=True, aliases={"停止教室添加"})
+stop_classroom = on_command(
+    "添加停止教室",
+    priority=5,
+    block=True,
+    aliases={"停止教室添加"})
 
 aed_search = on_command("aed", priority=6, block=True, aliases={"AED"})
 
@@ -183,6 +189,8 @@ remind = on_command("提醒", priority=5, block=True, aliases={"记事", "添加
 remind_finish = on_command("完成", priority=5, block=True, aliases={"结束", "移除"})
 
 remind_poke = on_notice(priority=5, block=True)
+
+cmd = on_message(block=True, permission=PRIVATE_FRIEND, priority=9)
 
 # 功能订阅-----------------------------------------------------------------
 
@@ -691,7 +699,7 @@ async def _(event: MessageEvent, state: T_State, user_ans: str = ArgStr("user_an
 
 
 @stop_classroom.handle()
-async def _(event:MessageEvent,state:T_State ,args:Message=CommandArg()):
+async def _(event: MessageEvent, state: T_State, args: Message = CommandArg()):
     flag, users = read_data(Path(XDU_SUPPORT_PATH, 'Ehall.txt'))
     users_id = [x[0] for x in users]
     user_id = str(event.user_id)
@@ -699,7 +707,8 @@ async def _(event:MessageEvent,state:T_State ,args:Message=CommandArg()):
         msg = args.extract_plain_text().strip().split(" ")
         if msg:
             msg_ = msg[0].split("-")
-            if len(msg_) !=2 or msg_[0] not in ["A","B","C","D", "EI", "EII", "EIII", "信远I", "信远II","信远III"]:
+            if len(msg_) != 2 or msg_[0] not in [
+                    "A", "B", "C", "D", "EI", "EII", "EIII", "信远I", "信远II", "信远III"]:
                 await stop_classroom.finish("教室格式有误，例如B-108，信远I-108")
             else:
                 state["stoproom"] = msg[0]
@@ -708,12 +717,16 @@ async def _(event:MessageEvent,state:T_State ,args:Message=CommandArg()):
 
 
 @stop_classroom.got("stoproom", prompt="请输入需要补充的停止教室")
-async def _(stoproom:str = ArgStr("stoproom")):
+async def _(stoproom: str = ArgStr("stoproom")):
     stoproom_ = stoproom.split("-")
-    if len(stoproom_) != 2 or stoproom_[0] not in ["A", "B", "C", "D", "EI", "EII", "EIII", "信远I", "信远II", "信远III"]:
-        await stop_classroom.reject_arg("stoproom",prompt="教室格式有误，例如B-108，信远I-108,请检查输入")
+    if len(stoproom_) != 2 or stoproom_[0] not in [
+            "A", "B", "C", "D", "EI", "EII", "EIII", "信远I", "信远II", "信远III"]:
+        await stop_classroom.reject_arg("stoproom", prompt="教室格式有误，例如B-108，信远I-108,请检查输入")
     else:
-        if os.path.exists(os.path.join(XDU_SUPPORT_PATH, "stop_classroom.txt")):
+        if os.path.exists(
+            os.path.join(
+                XDU_SUPPORT_PATH,
+                "stop_classroom.txt")):
             with open(os.path.join(XDU_SUPPORT_PATH, "stop_classroom.txt"), "r", encoding="utf-8") as f:
                 stoprooms = f.readlines()
         else:
@@ -816,7 +829,10 @@ async def _(event: MessageEvent, state: T_State, time_selector: str = ArgStr("ti
                 XDU_SUPPORT_PATH,
                 "idle_classroom_query",
                 f"{time_}_{build}_idle_rooms.txt")):
-            if os.path.exists(os.path.join(XDU_SUPPORT_PATH, "stop_classroom.txt")):
+            if os.path.exists(
+                os.path.join(
+                    XDU_SUPPORT_PATH,
+                    "stop_classroom.txt")):
                 with open(os.path.join(XDU_SUPPORT_PATH, "stop_classroom.txt"), "r", encoding="utf-8") as f:
                     stoprooms = f.readlines()
             else:
@@ -1005,8 +1021,9 @@ async def _(event: MessageEvent, bot: Bot):
 
 # 考试查询-----------------------------------------------------------------------------------
 
+
 @examination.handle()
-async def _(event:MessageEvent, bot:Bot, args:Message=CommandArg()):
+async def _(event: MessageEvent, bot: Bot, args: Message = CommandArg()):
     flag, users = read_data(Path(XDU_SUPPORT_PATH, 'Ehall.txt'))
     users_id = [x[0] for x in users]
     user_id = str(event.user_id)
@@ -1016,8 +1033,8 @@ async def _(event:MessageEvent, bot:Bot, args:Message=CommandArg()):
             users[users_id.index(user_id)][2], DES_KEY).decode()
         ses = EhallSession(username, password)
         msg = args.extract_plain_text().strip().split(" ")
-        if msg and msg[0] in ["上学期","上一学期", "前一学期"]:
-            term, examtimes = get_examtime(1,ses)
+        if msg and msg[0] in ["上学期", "上一学期", "前一学期"]:
+            term, examtimes = get_examtime(1, ses)
         else:
             term, examtimes = get_examtime(0, ses)
         examed = []
@@ -1025,17 +1042,20 @@ async def _(event:MessageEvent, bot:Bot, args:Message=CommandArg()):
         unexamed = []
         unexamed.append(f"{term}学期的未完成考试安排为")
         for examtime in examtimes:
-            examtime_day = datetime.strptime(examtime["KSSJMS"].split(" ")[0], "%Y-%m-%d")
+            examtime_day = datetime.strptime(
+                examtime["KSSJMS"].split(" ")[0], "%Y-%m-%d")
             timenow = datetime.strptime(
                 datetime.now().strftime('%Y-%m-%d'), '%Y-%m-%d')
-            if examtime_day-timenow >=timedelta(days=0):
-                unexamed.append(f"在{examtime['KSSJMS']}\n****************\n你有一门{examtime['KCM']}的考试\n****************\n在{examtime['JASDM']}教室，座号为{examtime['ZWH']}\n****************\n任课教师为{examtime['ZJJSXM']}")
+            if examtime_day - timenow >= timedelta(days=0):
+                unexamed.append(
+                    f"在{examtime['KSSJMS']}\n****************\n你有一门{examtime['KCM']}的考试\n****************\n在{examtime['JASDM']}教室，座号为{examtime['ZWH']}\n****************\n任课教师为{examtime['ZJJSXM']}")
             else:
                 examed.append(f"{examtime['KCM']}")
-        await send_forward_msg(bot, event, "XD小助手", str(event.user_id), unexamed+examed)
+        await send_forward_msg(bot, event, "XD小助手", str(event.user_id), unexamed + examed)
     else:
         await examination.finish("请先订阅考试查询功能,再进行查询")
 # 提醒记事------------------------------------------------------------------------------------
+
 
 @remind.handle()
 async def _(event: MessageEvent, state: T_State, args: Message = CommandArg()):
@@ -1044,7 +1064,7 @@ async def _(event: MessageEvent, state: T_State, args: Message = CommandArg()):
     user_id = str(event.user_id)
     if user_id in users_id:
         msg = args.extract_plain_text().strip().split(" ")
-        if len(msg) == 1 and msg[0]!="":
+        if len(msg) == 1 and msg[0] != "":
             state["item"] = msg[0]
         elif len(msg) == 2:
             state["item"] = msg[0]
@@ -1235,8 +1255,22 @@ async def run_at_22_30():
             if overtime:
                 msg += "****************\n有以下事项已过期，已经自动删除，请注意！\n"
                 msg += "\n".join(overtime)
-                _ = write_data(Path(os.path.join(XDU_SUPPORT_PATH, f"{user}todolist.txt")), intime)
+                _ = write_data(
+                    Path(
+                        os.path.join(
+                            XDU_SUPPORT_PATH,
+                            f"{user}todolist.txt")),
+                    intime)
             await bot.send_private_msg(user_id=int(user), message=msg)
+
+# 命令预处理
+
+
+@cmd.handle()
+async def _(event: MessageEvent, bot: Bot, msg: Message = EventPlainText()):
+    msg_event = get_handle_event(msg, event)
+    if msg_event:
+        asyncio.create_task(handle_event(bot, msg_event))
 
 
 # 文档操作----------------------------------------------------------------------------

@@ -1,5 +1,3 @@
-import asyncio
-import time
 import pytz
 from libxduauth import EhallSession, SportsSession
 import json
@@ -9,7 +7,6 @@ from pathlib import Path
 import os
 from .data_source import questions_multi, questions_single
 import random
-from nonebot.adapters.onebot.v11 import Message
 from pyDes import des, CBC, PAD_PKCS5
 import binascii
 from requests.cookies import RequestsCookieJar
@@ -23,6 +20,42 @@ import requests
 from Crypto.PublicKey import RSA
 import base64
 from Crypto.Cipher import PKCS1_v1_5
+import time
+import re
+import jieba.posseg as psg
+import jieba
+from jieba import lcut
+import jionlp as jio
+import asyncio
+from nonebot.adapters.onebot.v11 import MessageEvent, Message
+
+# 添加新词
+words = [
+    "体育打卡",
+    '考试',
+    "xdu功能订阅",
+    "xdu功能退订",
+    "更新课表",
+    "青年大学习",
+    '空闲教室',
+    "成绩",
+    "信远"
+]
+search_wd = ["课表", "体育打卡", "成绩", "考试"]
+
+Model = {
+    "体育打卡": "体育打卡",
+    "课表": "课表提醒",
+    "马原": "马原测试",
+    "空闲教室": "空闲教室查询",
+    "青年大学习": "青年大学习",
+    "成绩": "成绩查询",
+    "提醒": "提醒",
+    "考试": "考试查询"
+}
+
+exist_md = ["体育打卡", "课表", "马原", "空闲教室", "青年大学习", "成绩", "提醒", "考试"]
+
 
 # 晨午晚检------------------------------------------------------------------------
 
@@ -327,7 +360,7 @@ def get_classroom(ses: EhallSession, build: str) -> List:
             ["cxjsqk"]["rows"] if "休息室" not in x["JASMC"]]
 
 
-async def httpx_client_post(cookies: RequestsCookieJar, url: str, results: Dict[str, List], data: Dict, s: int, e: int, room: str, stop_classroom:List):
+async def httpx_client_post(cookies: RequestsCookieJar, url: str, results: Dict[str, List], data: Dict, s: int, e: int, room: str, stop_classroom: List):
     async with httpx.AsyncClient(cookies=cookies) as client:
         resp = (await client.post(url, data=data)).json()
         if not resp["datas"]["xdcxkxjsxq"]["rows"] and room not in stop_classroom:
@@ -335,7 +368,7 @@ async def httpx_client_post(cookies: RequestsCookieJar, url: str, results: Dict[
 
 
 async def get_idle_classroom(ses: EhallSession, rooms: List,
-                             time_: str, stop_classroom:List) -> Dict[str, List[str]]:
+                             time_: str, stop_classroom: List) -> Dict[str, List[str]]:
     y, m, d = time_.split("-")
     if 1 <= int(m) <= 7:
         XN = f'{int(y)-1}-{y}'
@@ -437,9 +470,11 @@ def analyse_best_idle_room(idle_room: Dict[str,
                 course_time = int(list(today_course.keys())[i])
                 course_floor = course_rooms[i][0]
                 if course_time != 4:
-                    result += [room.split("-")[1] for room in idle_room[time_sche[course_time + 1]] if room.split("-")[1][0] == course_floor]
+                    result += [room.split("-")[1] for room in idle_room[time_sche[course_time + 1]]
+                               if room.split("-")[1][0] == course_floor]
                 if course_time != 0:
-                    result += [room.split("-")[1] for room in idle_room[time_sche[course_time - 1]] if room.split("-")[1][0] == course_floor]
+                    result += [room.split("-")[1] for room in idle_room[time_sche[course_time - 1]]
+                               if room.split("-")[1][0] == course_floor]
                 result = [abs(int(x) - int(course_rooms[i])) for x in result]
                 collection_rooms = dict(Counter(result))
                 collection_rooms = sorted(
@@ -784,7 +819,8 @@ def get_grade(ses: EhallSession) -> (List, str):
 
 # 考试时间获取--------------------------------------------------------------------
 
-def get_examtime(flag:int, ses:EhallSession)->(str, List):
+
+def get_examtime(flag: int, ses: EhallSession) -> (str, List):
     terms_url = "https://ehall.xidian.edu.cn/jwapp/sys/studentWdksapApp/modules/wdksap/xnxqcx.do"
     term = ses.post(terms_url,
                     data={
@@ -796,9 +832,119 @@ def get_examtime(flag:int, ses:EhallSession)->(str, List):
         "XNXQDM": term,
         "*order": "-KSRQ,-KSSJMS"
     }
-    examtime = ses.post(examtime_url, data=data).json()["datas"]["wdksap"]["rows"]
+    examtime = ses.post(examtime_url, data=data).json()[
+        "datas"]["wdksap"]["rows"]
 
     return term, examtime
+
+# 命令预处理
+
+
+def get_eventname(text: Message) -> str:
+    key = psg.lcut(text)
+    kw = jio.keyphrase.extract_keyphrase(text)
+    flag = 0
+    first_v = "去"
+    for w, p in key:
+        if p == "v":
+            if flag == 0:
+                flag = 1
+            else:
+                first_v = w
+                break
+    pattern1 = f"{first_v}.*?{kw[-1]}"
+    if len(kw) == 1:
+        pattern2 = f"{kw[0]}"
+    elif len(kw) > 1:
+        pattern2 = f"{kw[0]}.*?{kw[-1]}"
+    else:
+        return ""
+    event_name1 = re.findall(pattern1, text)[0]
+    event_name2 = re.findall(pattern2, text)[0]
+    event_name = event_name1 if len(event_name1) > len(
+        event_name2) else event_name2
+    return event_name
+
+
+def generate_event(event: MessageEvent, cmd: str) -> MessageEvent:
+    msg_event = MessageEvent(time=int(time.time()),
+                             self_1d=185060250,
+                             post_type="message",
+                             sub_type="friend",
+                             user_id=event.user_id,
+                             message_type="private",
+                             message_id=event.message_id,
+                             message=[{"type": "text",
+                                       "data": {"text": f"{cmd}"}}],
+                             original_message=[{"type": "text",
+                                                "data": {"text": f"{cmd}"}}],
+                             raw_message=f"{cmd}",
+                             font=0,
+                             sender={"user_id": event.sender.user_id,
+                                     "nickname": event.sender.nickname,
+                                     "sex": event.sender.sex,
+                                     "age": event.sender.age,
+                                     "card": event.sender.card,
+                                     "area": event.sender.area,
+                                     "level": event.sender.level,
+                                     "role": event.sender.role,
+                                     "title": event.sender.title},
+                             to_me=event.to_me,
+                             reply=event.reply,
+                             target_id=1850602750)
+    return msg_event
+
+
+def get_handle_event(
+        tx: Message, event: MessageEvent) -> Union[MessageEvent, str]:
+    for wd in words:
+        jieba.add_word(wd)
+    word_list = lcut(tx)
+    for search in search_wd:
+        if search in word_list:
+            msg_event = generate_event(event, f"{search}查询")
+            return msg_event
+    if "订阅" in word_list:
+        for ex_md in exist_md:
+            if ex_md in word_list:
+                msg_event = generate_event(event, f"xdu功能订阅 {Model[ex_md]}")
+                return msg_event
+    elif "退订" in word_list:
+        for ex_md in exist_md:
+            if ex_md in word_list:
+                msg_event = generate_event(event, f"xdu功能退订 {Model[ex_md]}")
+                return msg_event
+    else:
+        if "空闲教室" in word_list:
+            build = ""
+            for wd in word_list:
+                if wd in ["A", "B", "C", "D", "信远", "E"]:
+                    build += wd + "教学楼"
+                elif wd in ["I", "II", "III"]:
+                    build += wd + "区"
+            try:
+                time_select = jio.parse_time(
+                    tx, time_base=time.time()).get("time")[0].split(" ")[0]
+            except BaseException:
+                time_select = ""
+            msg_event = generate_event(event, f"空闲教室查询 {build} {time_select}")
+            return msg_event
+        elif "提醒" in word_list:
+            event_name = get_eventname(tx)
+            if not event_name:
+                msg_event = generate_event(event, f"提醒")
+            else:
+                try:
+                    time_select = jio.parse_time(
+                        tx, time_base=time.time()).get("time")[0].split(" ")[0]
+                except BaseException:
+                    time_select = ""
+                msg_event = generate_event(
+                    event, f"提醒 {event_name} {time_select}")
+            return msg_event
+        else:
+            return ""
+
 
 # 加密解密-------------------------------------------------------------------------
 
