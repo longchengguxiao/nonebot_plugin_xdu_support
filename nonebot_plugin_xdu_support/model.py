@@ -867,31 +867,7 @@ def get_eventname(text: Message) -> str:
 
 
 def generate_event(event: MessageEvent, cmd: str) -> MessageEvent:
-    msg_event = MessageEvent(time=int(time.time()),
-                             self_1d=185060250,
-                             post_type="message",
-                             sub_type="friend",
-                             user_id=event.user_id,
-                             message_type="private",
-                             message_id=event.message_id,
-                             message=[{"type": "text",
-                                       "data": {"text": f"{cmd}"}}],
-                             original_message=[{"type": "text",
-                                                "data": {"text": f"{cmd}"}}],
-                             raw_message=f"{cmd}",
-                             font=0,
-                             sender={"user_id": event.sender.user_id,
-                                     "nickname": event.sender.nickname,
-                                     "sex": event.sender.sex,
-                                     "age": event.sender.age,
-                                     "card": event.sender.card,
-                                     "area": event.sender.area,
-                                     "level": event.sender.level,
-                                     "role": event.sender.role,
-                                     "title": event.sender.title},
-                             to_me=event.to_me,
-                             reply=event.reply,
-                             target_id=1850602750)
+    msg_event = MessageEvent(time=int(time.time()),self_1d=event.self_id,post_type="message",sub_type="friend",user_id=event.user_id,message_type="private",message_id=event.message_id,message=[{"type": "text","data": {"text": f"{cmd}"}}],original_message=[{"type": "text","data": {"text": f"{cmd}"}}],raw_message=f"{cmd}",font=0,sender={"user_id": event.sender.user_id,"nickname": event.sender.nickname,"sex": event.sender.sex,"age": event.sender.age,"card": event.sender.card,"area": event.sender.area,"level": event.sender.level,"role": event.sender.role,"title": event.sender.title},to_me=event.to_me,reply=event.reply,target_id=1850602750)
     return msg_event
 
 
