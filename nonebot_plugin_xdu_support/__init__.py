@@ -20,7 +20,7 @@ import nonebot
 
 import jionlp as jio
 from libxduauth import EhallSession, SportsSession, XKSession
-from .model import check, cron_check, get_sport_record, get_timetable, get_whole_day_course, get_next_course, get_question, get_teaching_buildings, get_classroom, get_idle_classroom, get_url_marker, get_url_routeplan, get_min_distance_aed, des_encrypt, des_descrypt, analyse_best_idle_room, punch_daily_health, get_youthstudy_names, get_verify, get_grade, get_examtime, get_handle_event
+from .model import check, cron_check, get_sport_record, get_timetable, get_whole_day_course, get_next_course, get_question, get_teaching_buildings, get_classroom, get_idle_classroom, get_url_marker, get_url_routeplan, get_min_distance_aed, des_encrypt, des_descrypt, analyse_best_idle_room, punch_daily_health, get_youthstudy_names, get_verify, get_grade, get_examtime, get_handle_event, get_eventname
 from .config import Config
 
 
@@ -1064,16 +1064,21 @@ async def _(event: MessageEvent, state: T_State, args: Message = CommandArg()):
     user_id = str(event.user_id)
     if user_id in users_id:
         msg = args.extract_plain_text().strip().split(" ")
-        if len(msg) == 1 and msg[0] != "":
-            state["item"] = msg[0]
-        elif len(msg) == 2:
-            state["item"] = msg[0]
-            try:
-                time_select = jio.parse_time(
-                    msg[1], time_base=time.time()).get("time")[0].split(" ")[0]
-                state["ddl"] = time_select
-            except BaseException:
-                pass
+        if msg and msg[0] != "":
+            if len(msg) == 1:
+                event_name = get_eventname("提醒" + msg[0])
+                if event_name:
+                    state["item"] = event_name
+            for m in msg:
+                try:
+                    m_ = jio.parse_time(
+                        m,
+                        time_base=time.time()).get("time")[0].split(" ")[0]
+                    state["ddl"] = m_
+                except:
+                    event_name = get_eventname("提醒" + m)
+                    if event_name:
+                        state["item"] = event_name
     else:
         await remind.finish("请先订阅提醒功能，再进行添加")
 
