@@ -854,7 +854,10 @@ def get_eventname(text: Message) -> str:
             else:
                 first_v = w
                 break
-    pattern1 = f"{first_v}(.*?{kw[-1]})"
+    if first_v == "去":
+        pattern1 = f"{first_v}(.*?{kw[-1]})"
+    else:
+        pattern1 = f"{first_v}.*?{kw[-1]}"
     if len(kw) == 1:
         pattern2 = f"{kw[0]}"
     elif len(kw) > 1:
