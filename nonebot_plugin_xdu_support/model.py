@@ -256,10 +256,16 @@ def get_next_course(username: str, basic_path: Union[Path, str]) -> str:
             if today_course.get("3", None):
                 course = today_course.get("3")
                 message += f"小小垚温馨提醒\n今天15:55-17:30\n你有一节 {course['name']} 在 {course['location']}上，\n请合理安排时间，不要迟到"
+            if today_course.get("5", None):
+                course = today_course.get("5")
+                message += f"小小垚温馨提醒\n今天15:55-18:10\n你有一节 {course['name']} 在 {course['location']}上，\n请合理安排时间，不要迟到"
         elif today.hour == 18:
             if today_course.get("4", None):
                 course = today_course.get("4")
                 message += f"小小垚温馨提醒\n今天19:00-20:35\n你有一节 {course['name']} 在 {course['location']}上，\n请合理安排时间，不要迟到"
+            if today_course.get("6", None):
+                course = today_course.get("6")
+                message += f"小小垚温馨提醒\n今天18:30-20:40\n你有一节 {course['name']} 在 {course['location']}上，\n请合理安排时间，不要迟到"
     return message
 
 
@@ -283,7 +289,7 @@ def get_whole_day_course(username: str, time_sche: List,
         else:
             message += f"明天一共有{len(list(today_course.keys()))}节课需要上\n"
         message += "****************\n"
-        for i in range(4):
+        for i in range(7):
             if today_course.get(str(i), None):
                 message += f"{time_sche[i][0]}-{time_sche[i][1]}\n有一节: {today_course[str(i)]['name']}\n上课地点在: {today_course[str(i)]['location']}\n"
                 message += "****************\n"
