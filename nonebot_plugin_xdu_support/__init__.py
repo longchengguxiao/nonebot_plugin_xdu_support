@@ -22,7 +22,7 @@ import jionlp as jio
 from libxduauth import EhallSession, SportsSession, XKSession
 from .model import check, cron_check, get_sport_record, get_timetable, get_whole_day_course, get_next_course, get_question, get_teaching_buildings, get_classroom, get_idle_classroom, get_url_marker, get_url_routeplan, get_min_distance_aed, des_encrypt, des_descrypt, analyse_best_idle_room, punch_daily_health, get_youthstudy_names, get_verify, get_grade, get_examtime, get_handle_event, get_eventname
 from .config import Config
-
+from .physic import getwrit_pe,is_wright
 
 # 启动定时器---------------------------------------------------------------
 
@@ -42,7 +42,8 @@ MODLE = {
     "青年大学习": "Youth",
     "成绩查询": "Ehall",
     "提醒": "TX",
-    "考试查询": "Ehall"
+    "考试查询": "Ehall",
+    "实验查询": "Pe"
 }
 
 MODEL_NEED = {
@@ -51,7 +52,8 @@ MODEL_NEED = {
     "XK": ["学号", "选课密码"],
     "MY": ["随便输入一些吧，反正也不需要补充信息~"],
     "Youth": ["陕西青少年大数据服务平台账号", "青少年大数据密码"],
-    "TX": ["随便输入一些吧，反正也不需要补充信息~"]
+    "TX": ["随便输入一些吧，反正也不需要补充信息~"],
+    "Pe":["物理实验学号","密码"]
 }
 
 MODEL_RUN_TIME = {
@@ -73,7 +75,9 @@ TIME_SCHED = [
     ("10:25", "12:00"),
     ("14:00", "15:35"),
     ("15:55", "17:30"),
-    ("19:00", "20:35")
+    ("15:55", "18:10"),
+    ("19:00", "20:35"),
+    ("18:30", "20:45")
 ]
 
 global_config = nonebot.get_driver().config
@@ -183,7 +187,7 @@ examination = on_command(
     aliases={
         "我的考试",
         "查询考试"})
-
+Pe_ = on_command('实验查询',priority=5, block=True, aliases={"物理实验", "实验成绩"})
 remind = on_command("提醒", priority=5, block=True, aliases={"记事", "添加"})
 
 remind_finish = on_command("完成", priority=5, block=True, aliases={"结束", "移除"})
@@ -284,6 +288,9 @@ async def got_info(event: PrivateMessageEvent, state: T_State, info: str = ArgSt
             ses.close()
         except ConnectionError:
             flag = 1
+    elif "物理实验学号" in infos:
+        if not is_wright(info[0],info[1]):
+            await add_sub.finish("物理实验网站学号密码错误，请核对后重新输入")
     if flag == 0:
         if infos[0] == "随便输入一些吧，反正也不需要补充信息~":
             users.append([user_id, "0", "0"])
@@ -597,9 +604,26 @@ async def run_at_15():
         await bot.send_private_msg(user_id=int(superusers[0]),
                                    message='课表提醒读取数据失败，快维修')
 
+@scheduler.scheduled_job("cron", hour="18", month="2-7,9-12")
+async def run_at_18():
+    bot = nonebot.get_bot()
+    path = Path(XDU_SUPPORT_PATH, "Ehall.txt")
+    flag, users = read_data(path)
+    if flag:
+        for user in users:
+            if os.path.exists(
+                os.path.join(
+                    XDU_SUPPORT_PATH,
+                    f'{user[1]}-remake.json')):
+                message = get_next_course(user[1], XDU_SUPPORT_PATH)
+                if message:
+                    await bot.send_private_msg(user_id=int(user[0]), message=message)
+    else:
+        await bot.send_private_msg(user_id=int(superusers[0]),
+                                   message='课表提醒读取数据失败，快维修')
 
 @scheduler.scheduled_job("cron", minute="30", hour="18", month="2-7,9-12")
-async def run_at_18():
+async def run_at_18_30():
     bot = nonebot.get_bot()
     path = Path(XDU_SUPPORT_PATH, "Ehall.txt")
     flag, users = read_data(path)
@@ -1054,6 +1078,33 @@ async def _(event: MessageEvent, bot: Bot, args: Message = CommandArg()):
         await send_forward_msg(bot, event, "XD小助手", str(event.user_id), unexamed + examed)
     else:
         await examination.finish("请先订阅考试查询功能,再进行查询")
+# 物理实验------------------------------------------------------------------------------------        
+@Pe_.handle()
+async def _(event: PrivateMessageEvent, bot: Bot, args: Message = CommandArg()):
+    flag, users = read_data(Path(XDU_SUPPORT_PATH, 'Pe.txt'))
+    users_id = [x[0] for x in users]
+    user_id = str(event.user_id)
+    if user_id in users_id:
+        username = users[users_id.index(user_id)][1]
+        password = des_descrypt(
+            users[users_id.index(user_id)][2], DES_KEY).decode()
+        timetable,conflicts,iswrite = getwrit_pe(username,password,path=f'{XDU_SUPPORT_PATH}/{username}-remake.json')
+        timetable += '\n'
+        try:
+            msg = MessageSegment.text(timetable)
+        except requests.exceptions.RequestException:
+            await Pe_.finish("网络错误，请联系机器人管理员")
+        if not iswrite:
+            msg += MessageSegment.text("当前物理未写入课表，如需写入请先订阅课表提醒")
+        else:
+            msg += MessageSegment.text('成功更新订阅的物理课表')
+        if len(conflicts) > 0:
+            msg += MessageSegment.text('\n\n注意！存在课程冲突！\n')
+            msg += MessageSegment.text(conflicts)
+            
+        await Pe_.finish(msg)
+    else:
+        await Pe_.finish("请先订阅实验查询功能,再进行查询")
 # 提醒记事------------------------------------------------------------------------------------
 
 
