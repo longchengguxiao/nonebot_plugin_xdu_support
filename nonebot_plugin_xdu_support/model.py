@@ -263,9 +263,10 @@ def get_next_course(username: str, basic_path: Union[Path, str]) -> str:
             if today_course.get("4", None):
                 course = today_course.get("4")
                 message += f"小小垚温馨提醒\n今天19:00-20:35\n你有一节 {course['name']} 在 {course['location']}上，\n请合理安排时间，不要迟到"
-            if today_course.get("6", None):
-                course = today_course.get("6")
-                message += f"小小垚温馨提醒\n今天18:30-20:40\n你有一节 {course['name']} 在 {course['location']}上，\n请合理安排时间，不要迟到"
+            if today.minute > 10:
+                if today_course.get("6", None):
+                    course = today_course.get("6")
+                    message += f"小小垚温馨提醒\n今天18:30-20:40\n你有一节 {course['name']} 在 {course['location']}上，\n请合理安排时间，不要迟到"
     return message
 
 
