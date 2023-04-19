@@ -19,7 +19,9 @@ xdu_config = Config.parse_obj(global_config.dict())
 go_cqhttp_data_path = xdu_config.go_cqhttp_data_path
 
 if not os.path.exists(os.path.join(go_cqhttp_data_path, "data", "voices")):
-    raise OSError(f"录音文件目录:{os.path.exists(os.path.join(go_cqhttp_data_path, 'data', 'voices'))}不存在，请检查")
+    raise OSError(
+        f"录音文件目录:{os.path.exists(os.path.join(go_cqhttp_data_path, 'data', 'voices'))}不存在，请检查")
+
 
 async def type_checker(event: Event) -> str:
     """判断消息类型为语音的规则。
@@ -31,7 +33,7 @@ async def type_checker(event: Event) -> str:
     return event.get_message()[0].type
 
 
-async def get_text(event: Event, secret_key:str, secret_id:str):
+async def get_text(event: Event, secret_key: str, secret_id: str):
     """通过语音识别获取语音中的文本，仅支持普通话。
 
     依赖参数:
@@ -39,7 +41,8 @@ async def get_text(event: Event, secret_key:str, secret_id:str):
     - bot: Bot 对象
     - event: Event 对象
     """
-    path_amr =go_cqhttp_data_path +"data\\voices\\" + event.get_message()[0].data["file"]
+    path_amr = go_cqhttp_data_path + "data\\voices\\" + \
+        event.get_message()[0].data["file"]
     path_pcm = path_amr[0:-4] + ".pcm"
     pilk.decode(path_amr, path_pcm)
     with open(path_pcm, 'rb') as f:
@@ -50,8 +53,7 @@ async def get_text(event: Event, secret_key:str, secret_id:str):
     return text
 
 
-
-async def _get_authorization(params, secret_key:str, secret_id:str):
+async def _get_authorization(params, secret_key: str, secret_id: str):
     service = "asr"
     host = "asr.tencentcloudapi.com"
     algorithm = "TC3-HMAC-SHA256"
@@ -66,7 +68,8 @@ async def _get_authorization(params, secret_key:str, secret_id:str):
     payload = json.dumps(params)
     canonical_headers = "content-type:%s\nhost:%s\n" % (ct, host)
     signed_headers = "content-type;host"
-    hashed_request_payload = hashlib.sha256(payload.encode("utf-8")).hexdigest()
+    hashed_request_payload = hashlib.sha256(
+        payload.encode("utf-8")).hexdigest()
     canonical_request = (http_request_method + "\n" +
                          canonical_uri + "\n" +
                          canonical_querystring + "\n" +
@@ -76,7 +79,8 @@ async def _get_authorization(params, secret_key:str, secret_id:str):
 
     # ************* 步骤 2：拼接待签名字符串 *************
     credential_scope = date + "/" + service + "/" + "tc3_request"
-    hashed_canonical_request = hashlib.sha256(canonical_request.encode("utf-8")).hexdigest()
+    hashed_canonical_request = hashlib.sha256(
+        canonical_request.encode("utf-8")).hexdigest()
     string_to_sign = (algorithm + "\n" +
                       str(timestamp) + "\n" +
                       credential_scope + "\n" +
@@ -89,17 +93,29 @@ async def _get_authorization(params, secret_key:str, secret_id:str):
     secret_date = await _sign(("TC3" + secret_key).encode("utf-8"), date)
     secret_service = await _sign(secret_date, service)
     secret_signing = await _sign(secret_service, "tc3_request")
-    signature = hmac.new(secret_signing, string_to_sign.encode("utf-8"), hashlib.sha256).hexdigest()
+    signature = hmac.new(
+        secret_signing,
+        string_to_sign.encode("utf-8"),
+        hashlib.sha256).hexdigest()
 
     # ************* 步骤 4：拼接 Authorization *************
-    authorization = (algorithm + " " +
-                     "Credential=" + secret_id + "/" + credential_scope + ", " +
-                     "SignedHeaders=" + signed_headers + ", " +
-                     "Signature=" + signature)
+    authorization = (
+        algorithm +
+        " " +
+        "Credential=" +
+        secret_id +
+        "/" +
+        credential_scope +
+        ", " +
+        "SignedHeaders=" +
+        signed_headers +
+        ", " +
+        "Signature=" +
+        signature)
     return authorization
 
 
-async def tencent_get_text(speech, length, secret_key:str, secret_id:str):
+async def tencent_get_text(speech, length, secret_key: str, secret_id: str):
     timestamp = int(time.time())
     url = "https://asr.tencentcloudapi.com"
     data = {

@@ -269,8 +269,12 @@ def get_next_course(username: str, basic_path: Union[Path, str]) -> str:
     return message
 
 
-def get_whole_day_course(username: str, time_sche: List,
-                         basic_path: Union[Path, str], today:Union[datetime, str] = datetime.now()) -> str:
+def get_whole_day_course(username: str,
+                         time_sche: List,
+                         basic_path: Union[Path,
+                                           str],
+                         today: Union[datetime,
+                                      str] = datetime.now()) -> str:
     message = ""
     with open(os.path.join(basic_path, f"{username}-remake.json"), "r", encoding="utf-8") as f:
         courses = json.loads(f.read())
@@ -285,7 +289,13 @@ def get_whole_day_course(username: str, time_sche: List,
     if courses.get(str(parse(f"{y}-{m}-{d}")).split(" ")[0], None):
         today_course: Dict = courses.get(
             str(parse(f"{y}-{m}-{d}")).split(" ")[0], None)
-        if datetime(year=y, month=m, day=d) == datetime(year=datetime.now().year,month=datetime.now().month,day=datetime.now().day):
+        if datetime(
+                year=y,
+                month=m,
+                day=d) == datetime(
+                year=datetime.now().year,
+                month=datetime.now().month,
+                day=datetime.now().day):
             message += f"今天一共有{len(list(today_course.keys()))}节课需要上\n"
         else:
             message += f"{y}-{m}-{d} 一共有{len(list(today_course.keys()))}节课需要上\n"
@@ -295,7 +305,13 @@ def get_whole_day_course(username: str, time_sche: List,
                 message += f"{time_sche[i][0]}-{time_sche[i][1]}\n有一节: {today_course[str(i)]['name']}\n上课地点在: {today_course[str(i)]['location']}\n"
                 message += "****************\n"
     else:
-        if datetime(year=y, month=m, day=d) == datetime(year=datetime.now().year,month=datetime.now().month,day=datetime.now().day):
+        if datetime(
+                year=y,
+                month=m,
+                day=d) == datetime(
+                year=datetime.now().year,
+                month=datetime.now().month,
+                day=datetime.now().day):
             message += "今天没有课哦，安排好时间，合理学习合理放松吧!"
         else:
             message += "明天没有课哦，安排好时间，合理学习合理放松吧!"
@@ -848,6 +864,8 @@ def get_examtime(flag: int, ses: EhallSession) -> (str, List):
 # 命令预处理--------------------------------------------------------------------------------------
 
 # 重排序，使关键词按照在句中出现的顺序排列
+
+
 def kws_sort(kws, tx):
     # 初始化结果列表
     result = []
@@ -859,7 +877,9 @@ def kws_sort(kws, tx):
     return result
 
 # 获取事件名称
-def get_eventname(text:str)->str:
+
+
+def get_eventname(text: str) -> str:
     key = psg.lcut(text)
     kw = jio.keyphrase.extract_keyphrase(text)
     kw = kws_sort(kws=kw, tx=text)
@@ -904,7 +924,7 @@ def generate_event(event: MessageEvent, cmd: str) -> MessageEvent:
                              user_id=event.user_id,
                              message_id=event.message_id,
                              message=[{"type": "text",
-                                        "data": {"text": f"{cmd}"}}],
+                                       "data": {"text": f"{cmd}"}}],
                              original_message=[{"type": "text",
                                                 "data": {"text": f"{cmd}"}}],
                              raw_message=f"{cmd}",
@@ -928,7 +948,7 @@ def get_handle_event(
         tx: Message, event: MessageEvent) -> Union[MessageEvent, str]:
     for wd in words:
         jieba.add_word(wd)
-    tx = tx.replace("，","").replace("。","")
+    tx = tx.replace("，", "").replace("。", "")
     word_list = lcut(tx)
 
     if "订阅" in word_list:
@@ -952,7 +972,8 @@ def get_handle_event(
                             tx, time_base=time.time()).get("time")[0].split(" ")[0]
                     except BaseException:
                         time_select = ""
-                    msg_event = generate_event(event, f"{search}查询{time_select}")
+                    msg_event = generate_event(
+                        event, f"{search}查询{time_select}")
                 return msg_event
         if "空闲教室" in word_list:
             build = ""

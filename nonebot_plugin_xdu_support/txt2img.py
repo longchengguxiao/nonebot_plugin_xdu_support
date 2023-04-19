@@ -93,7 +93,10 @@ class Txt2Img:
         """设置字体"""
         self.font_family = font_family
 
-    def set_font_size(self, font_size: int, title_font_size: Optional[int] = None):
+    def set_font_size(
+            self,
+            font_size: int,
+            title_font_size: Optional[int] = None):
         """设置字体大小"""
         self.text_font_size = font_size
         self.text_line_space = font_size // 2
@@ -103,7 +106,10 @@ class Txt2Img:
             self.title_font_size = int(font_size * 1.5)
         self.title_line_space = font_size
 
-    def set_font_color(self, text_color: tuple, title_color: Optional[tuple] = None):
+    def set_font_color(
+            self,
+            text_color: tuple,
+            title_color: Optional[tuple] = None):
         """设置字体颜色"""
         self.text_color = text_color
         if title_color is not None:
@@ -171,7 +177,11 @@ class Txt2Img:
                 bg_img = Image.open(background["image"])  # type: ignore
                 out_img = tile_image(bg_img, out_img)
             elif background["type"] == "color":  # type: ignore
-                out_img = Image.new("RGBA", (text_img.width + 2 * margin, text_img.height + 2 * margin), background["color"])  # type: ignore
+                out_img = Image.new(
+                    "RGBA",
+                    (text_img.width + 2 * margin,
+                     text_img.height + 2 * margin),
+                    background["color"])  # type: ignore
             else:
                 raise ValueError("Invalid background type")
         except Exception:
@@ -202,7 +212,8 @@ class Txt2Img:
 
         return out_img
 
-    def draw(self, title: str, text: str, template: Union[str, dict] = "mi") -> str:
+    def draw(self, title: str, text: str,
+             template: Union[str, dict] = "mi") -> str:
         """绘制给定模板下指定标题与正文的图片并转换为base64"""
         out_img = self.draw_img(title, text, template)
         return img2b64(out_img)
@@ -226,7 +237,8 @@ class Txt2Img:
         title_width = title_font.getsize(title)[0]
 
         if not self.fix_width:
-            line_max_width = max([text_font.getsize(line)[0] for line in lines])
+            line_max_width = max([text_font.getsize(line)[0]
+                                 for line in lines])
             text_total_width = max(line_max_width, title_width)
         else:
             text_total_width = self.text_max_width
@@ -239,13 +251,15 @@ class Txt2Img:
                 + (text_rows - 1) * (self.text_line_space)
             )
         else:
-            text_total_height = self.text_font_size * text_rows + (text_rows - 1) * (
-                self.text_line_space
-            )
+            text_total_height = self.text_font_size * text_rows + \
+                (text_rows - 1) * (self.text_line_space)
 
         out_img = Image.new(
-            mode="RGBA", size=(text_total_width, text_total_height), color=self.bg_color
-        )
+            mode="RGBA",
+            size=(
+                text_total_width,
+                text_total_height),
+            color=self.bg_color)
         draw = ImageDraw.Draw(out_img)
 
         if title:
@@ -278,7 +292,8 @@ class Txt2Img:
         return out_img
 
 
-def tile_image(small_image: Image.Image, big_image: Image.Image) -> Image.Image:
+def tile_image(small_image: Image.Image,
+               big_image: Image.Image) -> Image.Image:
     """将小图片平铺到大图片上"""
     w, h = small_image.size
 

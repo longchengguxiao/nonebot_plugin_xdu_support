@@ -94,10 +94,10 @@ secret_id = xdu_config.asr_api_key
 secret_key = xdu_config.asr_secret_key
 
 if not secret_id or not secret_key:
-    record_flag=False
+    record_flag = False
     logger.warning("没有填写语音服务的apikey，无法使用语音识别")
 else:
-    record_flag=True
+    record_flag = True
 
 if not DES_KEY:
     DES_KEY = b"mdbylcgx"
@@ -274,8 +274,9 @@ async def got_model(event: MessageEvent, state: T_State, model_: str = ArgStr("m
                 res += "==========================\n"
                 for info in infos:
                     res += info + '\n'
-                res += "https://longchengguxiao.github.io/encode_xdu_support/进入网站后输入相应的信息获取加密后的密文"
                 await add_sub.send(res)
+                await asyncio.sleep(1)
+                await add_sub.send("https://longchengguxiao.github.io/encode_xdu_support/进入网站后输入相应的信息获取加密后的密文\n\n不同消息之间用空格进行分割，如'123456798 abcdefghi'，将密文复制后返回给小助手")
         else:
             await add_sub.finish("读取信息出错了，请及时联系管理员")
     else:
@@ -283,7 +284,7 @@ async def got_model(event: MessageEvent, state: T_State, model_: str = ArgStr("m
 
 
 @add_sub.got("infoo",
-             prompt="请在输入时以空格对不同信息进行分割，并且不要改变顺序,例如'123456789 abcdefghi'，发送加密后的密文给小助手")
+             prompt="如果输入后发现无反应，可能是会话超时，请复制密文并重新进行订阅")
 async def got_info(state: T_State, infoo: str = ArgStr("infoo")):
     if infoo in ["取消", "算了"]:
         await add_sub.finish("已取消本次操作")
