@@ -19,6 +19,7 @@ from nonebot.typing import T_State
 from nonebot.params import ArgStr, CommandArg, Arg, EventPlainText
 from nonebot.message import handle_event
 from nonebot import require
+from nonebot.log import logger
 import nonebot
 
 import jionlp as jio
@@ -91,6 +92,12 @@ SK = xdu_config.sk
 appname = xdu_config.appname
 secret_id = xdu_config.asr_api_key
 secret_key = xdu_config.asr_secret_key
+
+if not secret_id or not secret_key:
+    record_flag=False
+    logger.warning("没有填写语音服务的apikey，无法使用语音识别")
+else:
+    record_flag=True
 
 if not DES_KEY:
     DES_KEY = b"mdbylcgx"
@@ -1442,9 +1449,9 @@ async def run_at_22_30():
 
 @cmd.handle()
 async def _(event: MessageEvent, bot: Bot, msg: Message = EventPlainText()):
-    if await type_checker(event) == "record":
+    if (await type_checker(event) == "record") and record_flag:
         msg = await get_text(event, secret_key=secret_key, secret_id=secret_id)
-        print(msg)
+        logger.warning(f"语音识别命令为{msg}")
     if msg:
         msg_event = get_handle_event(msg, event)
         if msg_event:
