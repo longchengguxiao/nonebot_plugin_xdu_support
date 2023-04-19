@@ -202,12 +202,12 @@ class Txt2Img:
 
         return out_img
 
-    def draw(self, title: str, text: Union[str,Message[MessageSegment]], template: Union[str, dict] = "mi") -> str:
+    def draw(self, title: str, text: str, template: Union[str, dict] = "mi") -> str:
         """绘制给定模板下指定标题与正文的图片并转换为base64"""
         out_img = self.draw_img(title, text, template)
         return img2b64(out_img)
 
-    def draw_text(self, title: str, text: Union[str,Message[MessageSegment]]) -> Image.Image:
+    def draw_text(self, title: str, text: str) -> Image.Image:
         """绘制标题与正文的图片"""
         title_font = ImageFont.truetype(self.font_family, self.title_font_size)
         text_font = ImageFont.truetype(self.font_family, self.text_font_size)
