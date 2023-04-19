@@ -80,6 +80,18 @@ python -m pip install nonebot_plugin_xdu_support
 <details>
 <summary>展开/收起</summary>
 
+### v0.5.7
+
++ 2023/04/12 新增物理实验查询，并整合到课表@canxin121
+
++ 2023/04/19 增加图形化设计，将文字描述转化为图片，更加直观
+
++ 2023/04/19 将原有的密码加密方式改为在网页中进行预加密服务，更加安全
+
++ 2023/04/19 部分功能支持语音识别
+
++ 2023/04/19 支持模糊匹配，不再需要按照严格的命令格式啦！
+
 ### v0.4.5
 
 + 2023/03/17 新增 成绩查询功能
@@ -152,3 +164,9 @@ python -m pip install nonebot_plugin_xdu_support
 感谢 [@cyk1464](https://github.com/cyk1464) 提供学生健康信息脚本
 
 感谢 [JioNLP](https://github.com/dongrixinyu/JioNLP) 提供时间部分的自然语言处理服务
+
+感谢 [canxin121](https://github.com/canxin121) 提供物理实验支持
+
+感谢 [nonebot_plugin_record](https://github.com/itsevin/nonebot_plugin_record) 提供音频识别服务
+
+感谢 [nonebot-plugin-txt2img](https://github.com/mobyw/nonebot-plugin-txt2img) 提供文字转图片
