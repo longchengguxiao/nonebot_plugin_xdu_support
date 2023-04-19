@@ -73,7 +73,7 @@ python -m pip install nonebot_plugin_xdu_support
 
 ## 详细用法
 
-> 详细用法参见[使用文档](https://longchengguxiao.github.io/plugindoc/#/nonebot_plugin_xdu_support/README)
+> 详细用法参见[使用文档](https://lcgx.xdu.org.cn/#/nonebot_plugin_xdu_support/README)
 
 ## 更新
 
