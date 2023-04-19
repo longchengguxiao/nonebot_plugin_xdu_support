@@ -1,3 +1,6 @@
+from .record2txt import get_text, type_checker
+from .txt2img import Txt2Img
+from nonebot_plugin_apscheduler import scheduler
 import time
 import re
 import asyncio
@@ -8,10 +11,10 @@ from builtins import ConnectionError
 from pathlib import Path
 from datetime import datetime, timedelta
 from typing import List, Union
+import shutil
 
-from nonebot_plugin_apscheduler import scheduler
 from nonebot.plugin import on_command, on_notice, on_message
-from nonebot.adapters.onebot.v11 import PrivateMessageEvent, GroupMessageEvent, Message, MessageEvent, MessageSegment, Bot, PokeNotifyEvent, PRIVATE_FRIEND
+from nonebot.adapters.onebot.v11 import GroupMessageEvent, Message, MessageEvent, MessageSegment, Bot, PokeNotifyEvent, PRIVATE_FRIEND, PrivateMessageEvent
 from nonebot.typing import T_State
 from nonebot.params import ArgStr, CommandArg, Arg, EventPlainText
 from nonebot.message import handle_event
@@ -20,14 +23,13 @@ import nonebot
 
 import jionlp as jio
 from libxduauth import EhallSession, SportsSession, XKSession
-from .model import check, cron_check, get_sport_record, get_timetable, get_whole_day_course, get_next_course, get_question, get_teaching_buildings, get_classroom, get_idle_classroom, get_url_marker, get_url_routeplan, get_min_distance_aed, des_encrypt, des_descrypt, analyse_best_idle_room, punch_daily_health, get_youthstudy_names, get_verify, get_grade, get_examtime, get_handle_event, get_eventname
+from .model import check, cron_check, get_sport_record, get_timetable, get_whole_day_course, get_next_course, get_question, get_teaching_buildings, get_classroom, get_idle_classroom, get_url_marker, get_url_routeplan, get_min_distance_aed, des_descrypt, analyse_best_idle_room, punch_daily_health, get_youthstudy_names, get_verify, get_grade, get_examtime, get_handle_event, get_eventname
 from .config import Config
-from .physic import getwrit_pe,is_wright
+from .physic import getwrit_pe, is_wright
 
 # 启动定时器---------------------------------------------------------------
 
 require("nonebot_plugin_apscheduler")
-
 
 # 配置初始项---------------------------------------------------------------
 
@@ -43,7 +45,7 @@ MODLE = {
     "成绩查询": "Ehall",
     "提醒": "TX",
     "考试查询": "Ehall",
-    "实验查询": "Pe"
+    "物理实验查询": "Pe"
 }
 
 MODEL_NEED = {
@@ -53,7 +55,7 @@ MODEL_NEED = {
     "MY": ["随便输入一些吧，反正也不需要补充信息~"],
     "Youth": ["陕西青少年大数据服务平台账号", "青少年大数据密码"],
     "TX": ["随便输入一些吧，反正也不需要补充信息~"],
-    "Pe":["物理实验学号","密码"]
+    "Pe": ["物理实验学号", "密码"]
 }
 
 MODEL_RUN_TIME = {
@@ -87,9 +89,11 @@ superusers = xdu_config.superusers
 DES_KEY = xdu_config.des_key
 SK = xdu_config.sk
 appname = xdu_config.appname
+secret_id = xdu_config.asr_api_key
+secret_key = xdu_config.asr_secret_key
 
 if not DES_KEY:
-    DES_KEY = "mdbylcgx"
+    DES_KEY = b"mdbylcgx"
 else:
     if len(DES_KEY) != 8:
         raise KeyError("DES_KEY必须是八位的字符串，请重新设置")
@@ -98,6 +102,24 @@ if xdu_support_path == Path():
     xdu_support_path = os.path.expanduser(
         os.path.join('~', '.nonebot_plugin_xdu_support')
     )
+
+if xdu_support_path != Path() and not os.path.exists(
+    os.path.join(
+        xdu_support_path,
+        'data',
+        'TXT2IMG',
+        "font",
+        "sarasa-mono-sc-regular.ttf")):
+    shutil.copytree(
+        os.path.join(
+            os.path.dirname(
+                os.path.abspath(__file__)),
+            'data'),
+        os.path.join(
+            xdu_support_path,
+            'font_and_image_data'),
+        dirs_exist_ok=True)
+
 
 XDU_SUPPORT_PATH = os.path.join(xdu_support_path, "user_data")
 
@@ -114,8 +136,6 @@ for name in MODLE.values():
 
 STATE_OK = True
 STATE_ERROR = False
-
-
 # 注册匹配器----------------------------------------------------------------
 
 add_sub = on_command(
@@ -123,14 +143,14 @@ add_sub = on_command(
     aliases={
         "xdu服务订阅",
         "xdu添加订阅"},
-    priority=4,
+    priority=5,
     block=True)
 cancel_sub = on_command(
     "xdu取消订阅",
     aliases={
         "xdu功能退订",
         "xdu服务退订"},
-    priority=4,
+    priority=5,
     block=True)
 #
 # chenwuwanjian = on_command(
@@ -187,14 +207,14 @@ examination = on_command(
     aliases={
         "我的考试",
         "查询考试"})
-Pe_ = on_command('实验查询',priority=5, block=True, aliases={"物理实验", "实验成绩"})
+Pe_ = on_command("物理实验查询", priority=5, block=True, aliases={"实验成绩"})
 remind = on_command("提醒", priority=5, block=True, aliases={"记事", "添加"})
 
 remind_finish = on_command("完成", priority=5, block=True, aliases={"结束", "移除"})
 
 remind_poke = on_notice(priority=5, block=True)
 
-cmd = on_message(block=True, permission=PRIVATE_FRIEND, priority=9)
+cmd = on_message(block=True, permission=PRIVATE_FRIEND, priority=10)
 
 # 功能订阅-----------------------------------------------------------------
 
@@ -213,13 +233,17 @@ async def handle(state: T_State, args: Message = CommandArg()):
         res += "==========================\n"
         # for model, model_run_time in MODEL_RUN_TIME.items():
         #     res += f"{model}功能的用法为{model_run_time}\n\n"
-        res += f"更多信息请查看https://lcgx.xdu.org.cn/#/nonebot_plugin_xdu_support/README?id=%e5%bf%ab%e9%80%9f%e5%bc%80%e5%a7%8b"
-        await add_sub.send(res)
+        title = "功能列表"
+        txt2img = Txt2Img()
+        pic = txt2img.draw(title, res)
+        res = f"更多信息请查看https://lcgx.xdu.org.cn/#/nonebot_plugin_xdu_support/README?id=%e5%bf%ab%e9%80%9f%e5%bc%80%e5%a7%8b"
+
+        await add_sub.send(MessageSegment.image(pic) + MessageSegment.text(res))
         await asyncio.sleep(0.5)
 
 
 @add_sub.got("model", prompt="请输入想要订阅的功能名称")
-async def got_model(event: PrivateMessageEvent, state: T_State, model_: str = ArgStr("model")):
+async def got_model(event: MessageEvent, state: T_State, model_: str = ArgStr("model")):
     if model_ in ["取消", "算了"]:
         await add_sub.finish("已取消本次操作")
     model = MODLE.get(model_, None)
@@ -239,11 +263,11 @@ async def got_model(event: PrivateMessageEvent, state: T_State, model_: str = Ar
             else:
                 infos = MODEL_NEED[model]
                 state["infos"] = infos
-                res = "你需要补充的信息有：\n"
+                res = "你需要补充的加密后信息有：\n"
                 res += "==========================\n"
                 for info in infos:
                     res += info + '\n'
-                res += "虽然对密码进行了加密处理，但是很遗憾，所有加密都是可逆的，如果不了解bot的主人请谨慎使用插件，谨慎填写密码。可以回复'算了'或者'取消'来取消本次操作，或者在使用完功能后及时取消订阅以免造成损失"
+                res += "https://longchengguxiao.github.io/encode_xdu_support/进入网站后输入相应的信息获取加密后的密文"
                 await add_sub.send(res)
         else:
             await add_sub.finish("读取信息出错了，请及时联系管理员")
@@ -251,52 +275,49 @@ async def got_model(event: PrivateMessageEvent, state: T_State, model_: str = Ar
         await add_sub.finish("输入有误，请重新检查您想订阅的功能名称并重试")
 
 
-@add_sub.got("info", prompt="请以空格对不同信息进行分割，并且不要改变顺序,例如'123456789 abcdefghi'")
-async def got_info(event: PrivateMessageEvent, state: T_State, info: str = ArgStr("info")):
-    if info in ["取消", "算了"]:
+@add_sub.got("infoo",
+             prompt="请在输入时以空格对不同信息进行分割，并且不要改变顺序,例如'123456789 abcdefghi'，发送加密后的密文给小助手")
+async def got_info(state: T_State, infoo: str = ArgStr("infoo")):
+    if infoo in ["取消", "算了"]:
         await add_sub.finish("已取消本次操作")
     flag = 0
     await asyncio.sleep(1)
     path = state["path"]
-    info = info.replace(
-        "&amp;",
-        "&").replace(
-        "&#44;",
-        ",").replace(
-            "&#91;",
-            "[").replace(
-                "&#93;",
-        "]").split()
+
     users = state["users"]
     user_id = state["user_id"]
     infos = state["infos"]
     if "一站式大厅密码" in infos:
+        info = des_descrypt(infoo, DES_KEY).split(" ")
         try:
             ses = EhallSession(info[0], info[1])
             ses.close()
         except ConnectionError:
             flag = 1
     elif "体适能密码" in infos:
+        info = des_descrypt(infoo, DES_KEY).split(" ")
         try:
             ses = SportsSession(info[0], info[1])
             ses.close()
         except ConnectionError:
             flag = 1
     elif "选课密码" in infos:
+        info = des_descrypt(infoo, DES_KEY).split(" ")
         try:
             ses = XKSession(info[0], info[1])
             ses.close()
         except ConnectionError:
             flag = 1
     elif "物理实验学号" in infos:
-        if not is_wright(info[0],info[1]):
+        info = des_descrypt(infoo, DES_KEY).split(" ")
+        if not is_wright(info[0], info[1]):
             await add_sub.finish("物理实验网站学号密码错误，请核对后重新输入")
     if flag == 0:
         if infos[0] == "随便输入一些吧，反正也不需要补充信息~":
             users.append([user_id, "0", "0"])
         else:
             users.append([user_id] +
-                         [info[0], des_encrypt(info[1], DES_KEY).decode()])
+                         [infoo])
         if write_data(path=path, data=users):
             await add_sub.finish(f"成功订阅功能{state['model']}")
         else:
@@ -323,7 +344,10 @@ async def handle(state: T_State, args: Message = CommandArg()):
         res = "现运行的功能有:\n"
         for model in MODLE.keys():
             res += model + "\n"
-        await cancel_sub.send(res)
+        title = "功能列表"
+        txt2img = Txt2Img()
+        pic = txt2img.draw(title, res)
+        await cancel_sub.send(MessageSegment.image(pic))
 
 
 @cancel_sub.got("model", prompt="请输入想要取消订阅的功能名称")
@@ -454,12 +478,16 @@ async def _(event: MessageEvent):
     users_id = [x[0] for x in users]
     user_id = str(event.user_id)
     if user_id in users_id:
-        username = users[users_id.index(user_id)][1]
-        password = des_descrypt(
-            users[users_id.index(user_id)][2], DES_KEY).decode()
+        info = des_descrypt(
+            users[users_id.index(user_id)][1], DES_KEY).split(" ")
+        username = info[0]
+        password = info[1]
         ses = SportsSession(username, password)
         flag, res = get_sport_record(ses, username)
-        await sport_punch.send(res)
+        title = "体育打卡查询"
+        txt2img = Txt2Img()
+        pic = txt2img.draw(title, res)
+        await sport_punch.send(MessageSegment.image(pic))
         if flag:
             path = Path(XDU_SUPPORT_PATH, "Sports.txt")
             flag, users = read_data(path)
@@ -486,9 +514,10 @@ async def _(event: MessageEvent):
     users_id = [x[0] for x in users]
     user_id = str(event.user_id)
     if user_id in users_id:
-        username = users[users_id.index(user_id)][1]
-        password = des_descrypt(
-            users[users_id.index(user_id)][2], DES_KEY).decode()
+        info = des_descrypt(
+            users[users_id.index(user_id)][1], DES_KEY).split(" ")
+        username = info[0]
+        password = info[1]
 
         ses = EhallSession(username, password)
         ses.use_app(4770397878132218)
@@ -500,15 +529,25 @@ async def _(event: MessageEvent):
 
 
 @timetable.handle()
-async def _(event: MessageEvent):
+async def _(event: MessageEvent, args: Message = CommandArg()):
     flag, users = read_data(Path(XDU_SUPPORT_PATH, 'Ehall.txt'))
     users_id = [x[0] for x in users]
     user_id = str(event.user_id)
+    msg = args.extract_plain_text().strip()
+    if msg:
+        try:
+            time_select = jio.parse_time(
+                msg, time_base=time.time()).get("time")[0].split(" ")[0]
+        except ValueError:
+            time_select = ""
+    else:
+        time_select = ""
     message = ""
     if user_id in users_id:
-        username = users[users_id.index(user_id)][1]
-        password = des_descrypt(
-            users[users_id.index(user_id)][2], DES_KEY).decode()
+        info = des_descrypt(
+            users[users_id.index(user_id)][1], DES_KEY).split(" ")
+        username = info[0]
+        password = info[1]
         if not os.path.exists(
             os.path.join(
                 XDU_SUPPORT_PATH,
@@ -518,13 +557,26 @@ async def _(event: MessageEvent):
             ses.use_app(4770397878132218)
             get_timetable(ses, username, XDU_SUPPORT_PATH)
             await timetable.send("课表更新完成，启动自动提醒，稍后返回数据", at_sender=True)
-        if datetime.now().hour > 20:
-            message += get_whole_day_course(username,
-                                            TIME_SCHED, XDU_SUPPORT_PATH, 1)
+        if not time_select:
+            if datetime.now().hour > 20:
+                message += get_whole_day_course(username,
+                                                TIME_SCHED,
+                                                XDU_SUPPORT_PATH,
+                                                datetime.now() + timedelta(days=1))
+                title = f"明日课程表"
+            else:
+                message += get_whole_day_course(username,
+                                                TIME_SCHED, XDU_SUPPORT_PATH)
+                title = f"今日课程表"
         else:
             message += get_whole_day_course(username,
-                                            TIME_SCHED, XDU_SUPPORT_PATH)
-        await timetable.finish(message)
+                                            TIME_SCHED,
+                                            XDU_SUPPORT_PATH,
+                                            time_select)
+            title = f"{time_select}课程表"
+        txt2img = Txt2Img()
+        pic = txt2img.draw(title, message)
+        await timetable.finish(MessageSegment.image(pic))
     else:
         await timetable.finish("请先订阅课表提醒功能，再进行查询")
 
@@ -604,6 +656,7 @@ async def run_at_15():
         await bot.send_private_msg(user_id=int(superusers[0]),
                                    message='课表提醒读取数据失败，快维修')
 
+
 @scheduler.scheduled_job("cron", hour="18", month="2-7,9-12")
 async def run_at_18():
     bot = nonebot.get_bot()
@@ -621,6 +674,7 @@ async def run_at_18():
     else:
         await bot.send_private_msg(user_id=int(superusers[0]),
                                    message='课表提醒读取数据失败，快维修')
+
 
 @scheduler.scheduled_job("cron", minute="30", hour="18", month="2-7,9-12")
 async def run_at_18_30():
@@ -653,9 +707,17 @@ async def run_at_22():
                     XDU_SUPPORT_PATH,
                     f'{user[1]}-remake.json')):
                 message = get_whole_day_course(
-                    user[1], TIME_SCHED, XDU_SUPPORT_PATH, 1)
+                    user[1],
+                    TIME_SCHED,
+                    XDU_SUPPORT_PATH,
+                    datetime.now() +
+                    timedelta(
+                        days=1))
                 if message:
-                    await bot.send_private_msg(user_id=int(user[0]), message=message)
+                    title = "明日课程表"
+                    txt2img = Txt2Img()
+                    pic = txt2img.draw(title, message)
+                    await bot.send_private_msg(user_id=int(user[0]), message=MessageSegment.image(pic))
 
     else:
         await bot.send_private_msg(user_id=int(superusers[0]),
@@ -668,15 +730,16 @@ async def run_at_22():
 async def handle(state: T_State, args: Message = CommandArg()):
     msg = args.extract_plain_text().strip()
     if msg:
-        if msg[0] == "单选":
+        if msg == "单选":
             res, ans, _type = get_question(1)
-        elif msg[0] == "多选":
+        elif msg == "多选":
             res, ans, _type = get_question(2)
         else:
             res, ans, _type = get_question(3)
     else:
         res, ans, _type = get_question(3)
     state["ans"] = ans
+
     await mayuan.send(_type + res)
 
 
@@ -769,9 +832,10 @@ async def _(bot: Bot, event: MessageEvent, state: T_State, args: Message = Comma
     message = []
     app_id = 4768402106681759
     if user_id in users_id:
-        username = users[users_id.index(user_id)][1]
-        password = des_descrypt(
-            users[users_id.index(user_id)][2], DES_KEY).decode()
+        info = des_descrypt(
+            users[users_id.index(user_id)][1], DES_KEY).split(" ")
+        username = info[0]
+        password = info[1]
         ses = EhallSession(username, password)
         ses.use_app(app_id)
         if not os.path.exists(
@@ -871,9 +935,10 @@ async def _(event: MessageEvent, state: T_State, time_selector: str = ArgStr("ti
         users_id = [x[0] for x in users]
         user_id = str(event.user_id)
         if user_id in users_id:
-            username = users[users_id.index(user_id)][1]
-            password = des_descrypt(
-                users[users_id.index(user_id)][2], DES_KEY).decode()
+            info = des_descrypt(
+                users[users_id.index(user_id)][1], DES_KEY).split(" ")
+            username = info[0]
+            password = info[1]
             if not os.path.exists(
                     os.path.join(
                         XDU_SUPPORT_PATH,
@@ -887,7 +952,10 @@ async def _(event: MessageEvent, state: T_State, time_selector: str = ArgStr("ti
                 courses = json.loads(f.read())
         message = analyse_best_idle_room(
             result, courses, time_, teaching_buildings[buildings.index(build)][1])
-        await idle_classroom_query.finish(message)
+        title = "空闲教室"
+        txt2img = Txt2Img()
+        pic = txt2img.draw(title, message)
+        await idle_classroom_query.finish(MessageSegment.image(pic))
     except ValueError:
         await idle_classroom_query.reject_arg("time_select", prompt="输入日期无法识别，请检查输入. 取消操作请回复'取消'或'算了'")
 
@@ -982,11 +1050,15 @@ async def _(state: T_State, num: str = ArgStr("num")):
             info["description"])
         await aed_search.send(message)
     await asyncio.sleep(1)
-    await aed_search.finish("找到AED除颤仪后请按照AED语音提示操作，注意与心肺复苏相急救结合使用。基本步骤如下:\n"
-                            "1、确认患者状态：包括是否失去反应、失去呼吸等；\n"
-                            "2、打开患者衣物裸露胸部，并根据标识将电极贴片贴在相应位置；\n"
-                            "3、AED分析心率：避免接触患者，以免干扰对心率的分析；\n"
-                            "4、当心率分析结果为室颤时，AED进行充电，充电完成后按下橙色按钮进行除颤，患者表现为全身瞬间抖动，之后需继续心肺复苏")
+    usage = "找到AED除颤仪后请按照AED语音提示操作，注意与心肺复苏相急救结合使用。基本步骤如下:\n" \
+            "1、确认患者状态：包括是否失去反应、失去呼吸等；\n" \
+            "2、打开患者衣物裸露胸部，并根据标识将电极贴片贴在相应位置；\n" \
+            "3、AED分析心率：避免接触患者，以免干扰对心率的分析；\n" \
+            "4、当心率分析结果为室颤时，AED进行充电，充电完成后按下橙色按钮进行除颤，患者表现为全身瞬间抖动，之后需继续心肺复苏"
+    title = "除颤仪使用方法"
+    txt2img = Txt2Img()
+    pic = txt2img.draw(title, usage)
+    await aed_search.finish(MessageSegment.image(pic))
 
 
 # 青年大学习--------------------------------------------------------------------------
@@ -997,9 +1069,10 @@ async def _(event: MessageEvent, state: T_State):
     users_id = [x[0] for x in users]
     user_id = str(event.user_id)
     if user_id in users_id:
-        state["username"] = users[users_id.index(user_id)][1]
-        state["password"] = des_descrypt(
-            users[users_id.index(user_id)][2], DES_KEY).decode()
+        info = des_descrypt(
+            users[users_id.index(user_id)][1], DES_KEY).split(" ")
+        state["username"] = info[0]
+        state["password"] = info[1]
         ses = requests.session()
         get_verify(ses, base_path=XDU_SUPPORT_PATH)
         state["ses"] = ses
@@ -1031,15 +1104,24 @@ async def _(event: MessageEvent, bot: Bot):
     users_id = [x[0] for x in users]
     user_id = str(event.user_id)
     if user_id in users_id:
-        username = users[users_id.index(user_id)][1]
-        password = des_descrypt(
-            users[users_id.index(user_id)][2], DES_KEY).decode()
+        info = des_descrypt(
+            users[users_id.index(user_id)][1], DES_KEY).split(" ")
+        username = info[0]
+        password = info[1]
         ses = EhallSession(username, password)
         ses.use_app(4768574631264620)
         msg, res = get_grade(ses)
         await grade.send(res + "\n计算公式为\nsum(必修学分*必修课分数)/sum(必修学分)" + "\n\n" + "下面为近两学期成绩")
         await asyncio.sleep(1)
+        res = ""
+        for les in msg:
+            res += les + "\n****************\n"
+        title = "考试成绩"
+        txt2img = Txt2Img()
+        pic = txt2img.draw(title, res)
         await send_forward_msg(bot, event, "XD小助手", str(event.user_id), msg)
+        await asyncio.sleep(1)
+        await grade.finish(MessageSegment.image(pic))
     else:
         await grade.finish("请先订阅成绩查询功能，再进行更新")
 
@@ -1052,12 +1134,13 @@ async def _(event: MessageEvent, bot: Bot, args: Message = CommandArg()):
     users_id = [x[0] for x in users]
     user_id = str(event.user_id)
     if user_id in users_id:
-        username = users[users_id.index(user_id)][1]
-        password = des_descrypt(
-            users[users_id.index(user_id)][2], DES_KEY).decode()
+        info = des_descrypt(
+            users[users_id.index(user_id)][1], DES_KEY).split(" ")
+        username = info[0]
+        password = info[1]
         ses = EhallSession(username, password)
-        msg = args.extract_plain_text().strip().split(" ")
-        if msg and msg[0] in ["上学期", "上一学期", "前一学期"]:
+        msg = args.extract_plain_text().strip()
+        if msg and msg in ["上学期", "上一学期", "前一学期"]:
             term, examtimes = get_examtime(1, ses)
         else:
             term, examtimes = get_examtime(0, ses)
@@ -1078,9 +1161,11 @@ async def _(event: MessageEvent, bot: Bot, args: Message = CommandArg()):
         await send_forward_msg(bot, event, "XD小助手", str(event.user_id), unexamed + examed)
     else:
         await examination.finish("请先订阅考试查询功能,再进行查询")
-# 物理实验------------------------------------------------------------------------------------        
+# 物理实验------------------------------------------------------------------------------------
+
+
 @Pe_.handle()
-async def _(event: PrivateMessageEvent, bot: Bot, args: Message = CommandArg()):
+async def _(event: PrivateMessageEvent):
     flag, users = read_data(Path(XDU_SUPPORT_PATH, 'Pe.txt'))
     users_id = [x[0] for x in users]
     user_id = str(event.user_id)
@@ -1088,23 +1173,31 @@ async def _(event: PrivateMessageEvent, bot: Bot, args: Message = CommandArg()):
         username = users[users_id.index(user_id)][1]
         password = des_descrypt(
             users[users_id.index(user_id)][2], DES_KEY).decode()
-        timetable,conflicts,iswrite = getwrit_pe(username,password,path=f'{XDU_SUPPORT_PATH}/{username}-remake.json')
+        timetable, conflicts, iswrite = getwrit_pe(
+            username, password, path=f'{XDU_SUPPORT_PATH}/{username}-remake.json')
         timetable += '\n'
+        msg = Message()
         try:
-            msg = MessageSegment.text(timetable)
+            msg += MessageSegment.text(timetable)
+
         except requests.exceptions.RequestException:
             await Pe_.finish("网络错误，请联系机器人管理员")
         if not iswrite:
             msg += MessageSegment.text("当前物理未写入课表，如需写入请先订阅课表提醒")
         else:
-            msg += MessageSegment.text('成功更新订阅的物理课表')
+            msg += MessageSegment.text('成功更新的物理课表')
         if len(conflicts) > 0:
             msg += MessageSegment.text('\n\n注意！存在课程冲突！\n')
             msg += MessageSegment.text(conflicts)
-            
-        await Pe_.finish(msg)
+
+        title = "物理实验"
+        txt2img = Txt2Img()
+        pic = txt2img.draw(title, msg)
+        res = MessageSegment.image(pic)
+        await Pe_.finish(res)
     else:
         await Pe_.finish("请先订阅实验查询功能,再进行查询")
+
 # 提醒记事------------------------------------------------------------------------------------
 
 
@@ -1117,7 +1210,13 @@ async def _(event: MessageEvent, state: T_State, args: Message = CommandArg()):
         msg = args.extract_plain_text().strip().split(" ")
         if msg and msg[0] != "":
             if len(msg) == 1:
-                event_name = get_eventname("提醒" + msg[0])
+                event_name = get_eventname(
+                    "提醒" +
+                    msg[0].replace(
+                        "，",
+                        "").replace(
+                        "。",
+                        ""))
                 if event_name:
                     state["item"] = event_name
             for m in msg:
@@ -1126,8 +1225,14 @@ async def _(event: MessageEvent, state: T_State, args: Message = CommandArg()):
                         m,
                         time_base=time.time()).get("time")[0].split(" ")[0]
                     state["ddl"] = m_
-                except:
-                    event_name = get_eventname("提醒" + m)
+                except BaseException:
+                    event_name = get_eventname(
+                        "提醒" +
+                        m.replace(
+                            "，",
+                            "").replace(
+                            "。",
+                            ""))
                     if event_name:
                         state["item"] = event_name
     else:
@@ -1151,6 +1256,7 @@ async def _(event: MessageEvent, state: T_State, ddl: str = ArgStr("ddl"), item:
     user_id = str(event.user_id)
     items = state["items"]
     if ddl in ["取消", "算了"]:
+        print(ddl)
         await remind.finish("已取消本次操作")
     try:
         ddl_ = jio.parse_time(
@@ -1175,9 +1281,12 @@ async def _(event: MessageEvent, state: T_State, ddl: str = ArgStr("ddl"), item:
         msg = "添加成功！目前您仍有以下待办：\n"
         for i in range(len(ans)):
             msg += f"****************\n{i}. {ans[i]}\n"
-        await remind.finish(msg)
+        title = "剩余待办"
+        txt2img = Txt2Img()
+        pic = txt2img.draw(title, msg)
+        await remind.finish(MessageSegment.image(pic))
     except ValueError:
-        await idle_classroom_query.reject_arg("time_select", prompt="输入日期无法识别，请检查并重新输入. 取消操作请回复'取消'或'算了'")
+        await idle_classroom_query.reject_arg("ddl", prompt="输入日期无法识别，请检查并重新输入. 取消操作请回复'取消'或'算了'")
 
 
 @remind_finish.handle()
@@ -1192,13 +1301,13 @@ async def _(event: MessageEvent, state: T_State, args: Message = CommandArg()):
                     XDU_SUPPORT_PATH, f"{user_id}todolist.txt")))
         if not items:
             await remind_finish.finish("已经没有ddl啦，无需再进行删除哦~")
-        msg = args.extract_plain_text().strip().split(" ")
+        msg = args.extract_plain_text().strip()
         if msg:
             try:
-                int(msg[0])
-                state["item"] = int(msg[0])
+                int(msg)
+                state["item"] = int(msg)
             except BaseException:
-                state["item"] = msg[0]
+                state["item"] = msg
             state["items"] = items
         else:
             ans = [f"{i}将在{d}截止" for i, d in items]
@@ -1206,7 +1315,10 @@ async def _(event: MessageEvent, state: T_State, args: Message = CommandArg()):
             msg = "目前您仍有以下待办：\n"
             for i in range(len(ans)):
                 msg += f"****************\n{i}. {ans[i]}\n"
-            await remind_finish.send(msg)
+            title = "剩余待办"
+            txt2img = Txt2Img()
+            pic = txt2img.draw(title, msg)
+            await remind_finish.send(MessageSegment.image(pic))
     else:
         await remind.finish("您暂未订阅提醒功能哦~")
 
@@ -1271,7 +1383,10 @@ async def _(event: PokeNotifyEvent):
             msg = "目前您仍有以下待办：\n"
             for i in range(len(ans)):
                 msg += f"****************\n{i}. {ans[i]}\n"
-            await remind_poke.finish(msg)
+            title = "剩余待办"
+            txt2img = Txt2Img()
+            pic = txt2img.draw(title, msg)
+            await remind_poke.finish(MessageSegment.image(pic))
     else:
         await remind.finish("您暂未订阅提醒功能哦~")
 
@@ -1317,16 +1432,23 @@ async def run_at_22_30():
                             XDU_SUPPORT_PATH,
                             f"{user}todolist.txt")),
                     intime)
-            await bot.send_private_msg(user_id=int(user), message=msg)
+            title = "待办"
+            txt2img = Txt2Img()
+            pic = txt2img.draw(title, msg)
+            await bot.send_private_msg(user_id=int(user), message=MessageSegment.image(pic))
 
 # 命令预处理
 
 
 @cmd.handle()
 async def _(event: MessageEvent, bot: Bot, msg: Message = EventPlainText()):
-    msg_event = get_handle_event(msg, event)
-    if msg_event:
-        asyncio.create_task(handle_event(bot, msg_event))
+    if await type_checker(event) == "record":
+        msg = await get_text(event, secret_key=secret_key, secret_id=secret_id)
+        print(msg)
+    if msg:
+        msg_event = get_handle_event(msg, event)
+        if msg_event:
+            asyncio.create_task(handle_event(bot, msg_event))
 
 
 # 文档操作----------------------------------------------------------------------------

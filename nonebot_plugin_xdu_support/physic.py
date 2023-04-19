@@ -2,10 +2,11 @@ import datetime
 import json
 import requests
 from bs4 import BeautifulSoup
-import re
 import numpy as np
+from typing import List
 
-def reqres(LoginID,Password):
+
+def reqres(LoginID: str, Password: str) -> List:
     login_url = "http://wlsy.xidian.edu.cn/PhyEWS/default.aspx?ReturnUrl=/PhyEws/student/course.aspx"
     headers = {
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
@@ -39,9 +40,9 @@ def reqres(LoginID,Password):
     session = requests.Session()
     response = session.post(login_url, headers=headers, data=data)
 
-
     # 发送选课页面请求
-    response = session.get("http://wlsy.xidian.edu.cn/PhyEWS/student/select.aspx")
+    response = session.get(
+        "http://wlsy.xidian.edu.cn/PhyEWS/student/select.aspx")
 
     html = response.text
     soup = BeautifulSoup(html, 'html.parser')
@@ -54,10 +55,11 @@ def reqres(LoginID,Password):
             row.append(td.get_text().strip())
         if len(row) > 0:
             experiments.append(row)
-    experiments=experiments[4:13]
+    experiments = experiments[4:13]
     return experiments
 
-def find_conflicts(schedule):
+
+def find_conflicts(schedule: json) -> str:
     conflicts = []
     for date, courses in schedule.items():
         has_3_and_5 = "3" in courses and "5" in courses
@@ -65,7 +67,7 @@ def find_conflicts(schedule):
         if has_3_and_5 or has_4_and_6:
             conflict_courses = []
             if has_3_and_5:
-                conflict_courses.append(str(courses["3"]["name"]+ ' 和'))
+                conflict_courses.append(str(courses["3"]["name"] + ' 和'))
                 conflict_courses.append(str(courses["5"]["name"]))
             if has_4_and_6:
                 conflict_courses.append(str(courses["4"]["name"] + ' 和'))
@@ -74,15 +76,17 @@ def find_conflicts(schedule):
     conflicts_str = '\n'.join(['\t'.join(c) for c in conflicts])
     return conflicts_str
 
-def is_wright(user,passwd):
-    data = reqres(user,passwd)
-    #如果正确data中不会有['学生教师']
+
+def is_wright(user: str, passwd: str) -> bool:
+    data = reqres(user, passwd)
+    # 如果正确data中不会有['学生教师']
     return not ['学生教师'] in data
 
-def getwrit_pe(user,passwd,path):
+
+def getwrit_pe(user: str, passwd: str, path: str) -> (str, str, bool):
     write_ = bool()
-    data = reqres(user,passwd)
-    #处理成json并写入到本地课表
+    data = reqres(user, passwd)
+    # 处理成json并写入到本地课表
     ####################################################
     data_np = np.array(data)
     # print(data_np)
@@ -91,7 +95,8 @@ def getwrit_pe(user,passwd,path):
     for row in data_np:
         row[1] = row[1].replace('18:30-20:45', '6').replace('15:55-18:10', '5')
         date_str = row[-2]  # 获取子列表中的最后一个元素
-        date_obj = datetime.datetime.strptime(date_str, '%m/%d/%Y')  # 将字符串转换为datetime对象
+        date_obj = datetime.datetime.strptime(
+            date_str, '%m/%d/%Y')  # 将字符串转换为datetime对象
         date_str_new = date_obj.strftime('%Y-%m-%d')  # 将datetime对象转换为字符串
         row[-2] = date_str_new  # 将新的字符串格式更新到原来的子列表中的最后一个元素
     data_dict = {}
@@ -113,31 +118,31 @@ def getwrit_pe(user,passwd,path):
 
         # 将data_dict添加到json_data中
         json_data.update(data_dict)
-        
-        #写入到临时变量后，判断是否有课程冲突存在
+
+        # 写入到临时变量后，判断是否有课程冲突存在
         #################################################
         conflicts = find_conflicts(json_data)
         #################################################
-        
+
         # 将更新后的json_data写回json课表文件中
         with open(path, "w", encoding="utf-8") as f:
             json.dump(json_data, f, ensure_ascii=False)
-        write_ = True   
+        write_ = True
     except (FileNotFoundError, json.JSONDecodeError, IOError, TypeError):
         write_ = False
-    #处理成课表str信息，发送给用户
+    # 处理成课表str信息，发送给用户
     #######################################################
     for row in data:
-        del row[0],row[1],row[4]
+        del row[0], row[1], row[4]
         row[2] = row[2] + row[1]
         del row[1]
-        row[0],row[1] = '*' + row[1]+ '\n','--' + row[0] + '\n'
-        row[2] = '-----位置:' + row[2]+ '\n'
-        row[3] = '-----成绩:' + row[3]+ '\n'
-        row[4] = '-----归一成绩:' + row[4]+ '\n'
-        row[5] = '-----备注:' + row[5]+ '\n'
+        row[0], row[1] = '*' + row[1] + '\n', '--' + row[0] + '\n'
+        row[2] = '-----位置:' + row[2] + '\n'
+        row[3] = '-----成绩:' + row[3] + '\n'
+        row[4] = '-----归一成绩:' + row[4] + '\n'
+        row[5] = '-----备注:' + row[5] + '\n'
     data_str = [[str(x) for x in row] for row in data]
-    
+
     output_str = ''.join([''.join(row) for row in data_str])
-    #######直接发给用户的信息，是否冲突，是否更新了课表提醒的课表
-    return output_str,conflicts,write_
+    # 直接发给用户的信息，是否冲突，是否更新了课表提醒的课表
+    return output_str, conflicts, write_

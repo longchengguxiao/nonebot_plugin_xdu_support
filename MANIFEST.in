@@ -1,0 +1,2 @@
+recursive-include nonebot_plugin_xdu_support/data/TXT2IMG/font *.ttf
+recursive-include nonebot_plugin_xdu_support/data/TXT2IMG/image *.png
