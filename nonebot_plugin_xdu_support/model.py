@@ -947,7 +947,12 @@ def get_handle_event(
                 if search == "课表" and "更新" in word_list:
                     msg_event = generate_event(event, f"更新课表")
                 else:
-                    msg_event = generate_event(event, f"{search}查询")
+                    try:
+                        time_select = jio.parse_time(
+                            tx, time_base=time.time()).get("time")[0].split(" ")[0]
+                    except BaseException:
+                        time_select = ""
+                    msg_event = generate_event(event, f"{search}查询{time_select}")
                 return msg_event
         if "空闲教室" in word_list:
             build = ""

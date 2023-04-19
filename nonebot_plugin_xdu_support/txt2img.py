@@ -135,7 +135,7 @@ class Txt2Img:
         return result
 
     def draw_img(
-        self, title: str, text: Union[str,Message[MessageSegment]], template: Union[str, dict] = "mi"
+        self, title: str, text: str, template: Union[str, dict] = "mi"
     ) -> Image.Image:
         """绘制给定模板模板下的图片"""
 
