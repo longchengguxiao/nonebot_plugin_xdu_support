@@ -1,6 +1,5 @@
 from .record2txt import get_text, type_checker
 from .txt2img import Txt2Img
-from nonebot_plugin_apscheduler import scheduler
 import time
 import re
 import asyncio
@@ -31,6 +30,7 @@ from .physic import getwrit_pe, is_wright
 # 启动定时器---------------------------------------------------------------
 
 require("nonebot_plugin_apscheduler")
+from nonebot_plugin_apscheduler import scheduler
 
 # 配置初始项---------------------------------------------------------------
 
