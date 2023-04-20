@@ -39,7 +39,9 @@ words = [
     "更新",
     "课表",
     "马原",
-    "物理实验"
+    "物理实验",
+    "上学期",
+    "前一学期"
 ]
 search_wd = ["课表", "体育打卡", "成绩", "考试"]
 
@@ -966,6 +968,8 @@ def get_handle_event(
             if search in word_list:
                 if search == "课表" and "更新" in word_list:
                     msg_event = generate_event(event, f"更新课表")
+                elif search == "考试" and ("上学期" in word_list or "前一学期" in word_list):
+                    msg_event = generate_event(event, "考试查询 上学期")
                 else:
                     try:
                         time_select = jio.parse_time(

@@ -490,8 +490,11 @@ async def _(event: MessageEvent):
             users[users_id.index(user_id)][1], DES_KEY).split(" ")
         username = info[0]
         password = info[1]
-        ses = SportsSession(username, password)
-        flag, res = get_sport_record(ses, username)
+        try:
+            ses = SportsSession(username, password)
+            flag, res = get_sport_record(ses, username)
+        except requests.exceptions.RequestException:
+            await sport_punch.finish("烂怂体适能，又出错了~")
         title = "体育打卡查询"
         txt2img = Txt2Img()
         pic = txt2img.draw(title, res)
@@ -526,10 +529,12 @@ async def _(event: MessageEvent):
             users[users_id.index(user_id)][1], DES_KEY).split(" ")
         username = info[0]
         password = info[1]
-
-        ses = EhallSession(username, password)
-        ses.use_app(4770397878132218)
-        get_timetable(ses, username, XDU_SUPPORT_PATH)
+        try:
+            ses = EhallSession(username, password)
+            ses.use_app(4770397878132218)
+            get_timetable(ses, username, XDU_SUPPORT_PATH)
+        except requests.exceptions.RequestException:
+            await update_timetable.finish("一站式大厅似乎又崩溃了呢，快去联系管理员吧")
 
         await update_timetable.finish("课表更新成功，启动自动提醒")
     else:
@@ -561,9 +566,12 @@ async def _(event: MessageEvent, args: Message = CommandArg()):
                 XDU_SUPPORT_PATH,
                 f'{username}-remake.json')):
             await timetable.send("未找到本地课表，正在进行在线爬取并储存，请稍等", at_sender=True)
-            ses = EhallSession(username, password)
-            ses.use_app(4770397878132218)
-            get_timetable(ses, username, XDU_SUPPORT_PATH)
+            try:
+                ses = EhallSession(username, password)
+                ses.use_app(4770397878132218)
+                get_timetable(ses, username, XDU_SUPPORT_PATH)
+            except requests.exceptions.RequestException:
+                await timetable.finish("一站式大厅似乎又出错了呢，快去联系管理员吧")
             await timetable.send("课表更新完成，启动自动提醒，稍后返回数据", at_sender=True)
         if not time_select:
             if datetime.now().hour > 20:
@@ -844,8 +852,11 @@ async def _(bot: Bot, event: MessageEvent, state: T_State, args: Message = Comma
             users[users_id.index(user_id)][1], DES_KEY).split(" ")
         username = info[0]
         password = info[1]
-        ses = EhallSession(username, password)
-        ses.use_app(app_id)
+        try:
+            ses = EhallSession(username, password)
+            ses.use_app(app_id)
+        except requests.exceptions.RequestException:
+            await idle_classroom_query.finish("一站式大厅似乎又出错了呢，快去联系管理员")
         if not os.path.exists(
             os.path.join(
                 XDU_SUPPORT_PATH,
@@ -1097,7 +1108,10 @@ async def _(state: T_State, verify: str = ArgStr("verify")):
     username = state["username"]
     password = state["password"]
     ses = state["ses"]
-    flag, msg = get_youthstudy_names(ses, verify, username, password)
+    try:
+        flag, msg = get_youthstudy_names(ses, verify, username, password)
+    except requests.exceptions.RequestException:
+        await youthstudy.finish("似乎是陕西请你数据平台出错了呢，联系管理员看一下吧~")
     if flag:
         await youthstudy.finish(msg)
     else:
@@ -1116,9 +1130,12 @@ async def _(event: MessageEvent, bot: Bot):
             users[users_id.index(user_id)][1], DES_KEY).split(" ")
         username = info[0]
         password = info[1]
-        ses = EhallSession(username, password)
-        ses.use_app(4768574631264620)
-        msg, res = get_grade(ses)
+        try:
+            ses = EhallSession(username, password)
+            ses.use_app(4768574631264620)
+            msg, res = get_grade(ses)
+        except requests.exceptions.RequestException:
+            await grade.finish("一站式大厅又崩了，联系管理员查看吧")
         await grade.send(res + "\n计算公式为\nsum(必修学分*必修课分数)/sum(必修学分)" + "\n\n" + "下面为近两学期成绩")
         await asyncio.sleep(1)
         res = ""
@@ -1146,8 +1163,11 @@ async def _(event: MessageEvent, bot: Bot, args: Message = CommandArg()):
             users[users_id.index(user_id)][1], DES_KEY).split(" ")
         username = info[0]
         password = info[1]
-        ses = EhallSession(username, password)
-        msg = args.extract_plain_text().strip()
+        try:
+            ses = EhallSession(username, password)
+            msg = args.extract_plain_text().strip()
+        except requests.exceptions.RequestException:
+            await examination.finish("一站式大厅又出错了，真是可恶啊")
         if msg and msg in ["上学期", "上一学期", "前一学期"]:
             term, examtimes = get_examtime(1, ses)
         else:
@@ -1445,7 +1465,7 @@ async def run_at_22_30():
             pic = txt2img.draw(title, msg)
             await bot.send_private_msg(user_id=int(user), message=MessageSegment.image(pic))
 
-# 命令预处理
+# 命令预处理----------------------------------------------------------------------------------
 
 
 @cmd.handle()
