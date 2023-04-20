@@ -108,7 +108,7 @@ python -m pip install nonebot_plugin_xdu_support
 <details>
 <summary>展开/收起</summary>
 
-### v0.5.12
+### v0.5.13
 
 + 2023/04/20 修复定时任务出错的问题
 
