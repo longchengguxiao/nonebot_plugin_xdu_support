@@ -604,11 +604,14 @@ async def run_at_8():
     flag, users = read_data(path)
     if flag:
         for user in users:
+            info = des_descrypt(
+                user[1], DES_KEY).split(" ")
+            username = info[0]
             if os.path.exists(
                 os.path.join(
                     XDU_SUPPORT_PATH,
-                    f'{user[1]}-remake.json')):
-                message = get_next_course(user[1], XDU_SUPPORT_PATH)
+                    f'{username}-remake.json')):
+                message = get_next_course(username, XDU_SUPPORT_PATH)
                 if message:
                     await bot.send_private_msg(user_id=int(user[0]), message=message)
     else:
@@ -623,11 +626,14 @@ async def run_at_9():
     flag, users = read_data(path)
     if flag:
         for user in users:
+            info = des_descrypt(
+                user[1], DES_KEY).split(" ")
+            username = info[0]
             if os.path.exists(
-                os.path.join(
-                    XDU_SUPPORT_PATH,
-                    f'{user[1]}-remake.json')):
-                message = get_next_course(user[1], XDU_SUPPORT_PATH)
+                    os.path.join(
+                        XDU_SUPPORT_PATH,
+                        f'{username}-remake.json')):
+                message = get_next_course(username, XDU_SUPPORT_PATH)
                 if message:
                     await bot.send_private_msg(user_id=int(user[0]), message=message)
     else:
@@ -642,11 +648,14 @@ async def run_at_13():
     flag, users = read_data(path)
     if flag:
         for user in users:
+            info = des_descrypt(
+                user[1], DES_KEY).split(" ")
+            username = info[0]
             if os.path.exists(
-                os.path.join(
-                    XDU_SUPPORT_PATH,
-                    f'{user[1]}-remake.json')):
-                message = get_next_course(user[1], XDU_SUPPORT_PATH)
+                    os.path.join(
+                        XDU_SUPPORT_PATH,
+                        f'{username}-remake.json')):
+                message = get_next_course(username, XDU_SUPPORT_PATH)
                 if message:
                     await bot.send_private_msg(user_id=int(user[0]), message=message)
     else:
@@ -661,11 +670,14 @@ async def run_at_15():
     flag, users = read_data(path)
     if flag:
         for user in users:
+            info = des_descrypt(
+                user[1], DES_KEY).split(" ")
+            username = info[0]
             if os.path.exists(
-                os.path.join(
-                    XDU_SUPPORT_PATH,
-                    f'{user[1]}-remake.json')):
-                message = get_next_course(user[1], XDU_SUPPORT_PATH)
+                    os.path.join(
+                        XDU_SUPPORT_PATH,
+                        f'{username}-remake.json')):
+                message = get_next_course(username, XDU_SUPPORT_PATH)
                 if message:
                     await bot.send_private_msg(user_id=int(user[0]), message=message)
     else:
@@ -680,11 +692,14 @@ async def run_at_18():
     flag, users = read_data(path)
     if flag:
         for user in users:
+            info = des_descrypt(
+                user[1], DES_KEY).split(" ")
+            username = info[0]
             if os.path.exists(
-                os.path.join(
-                    XDU_SUPPORT_PATH,
-                    f'{user[1]}-remake.json')):
-                message = get_next_course(user[1], XDU_SUPPORT_PATH)
+                    os.path.join(
+                        XDU_SUPPORT_PATH,
+                        f'{username}-remake.json')):
+                message = get_next_course(username, XDU_SUPPORT_PATH)
                 if message:
                     await bot.send_private_msg(user_id=int(user[0]), message=message)
     else:
@@ -699,11 +714,14 @@ async def run_at_18_30():
     flag, users = read_data(path)
     if flag:
         for user in users:
+            info = des_descrypt(
+                user[1], DES_KEY).split(" ")
+            username = info[0]
             if os.path.exists(
-                os.path.join(
-                    XDU_SUPPORT_PATH,
-                    f'{user[1]}-remake.json')):
-                message = get_next_course(user[1], XDU_SUPPORT_PATH)
+                    os.path.join(
+                        XDU_SUPPORT_PATH,
+                        f'{username}-remake.json')):
+                message = get_next_course(username, XDU_SUPPORT_PATH)
                 if message:
                     await bot.send_private_msg(user_id=int(user[0]), message=message)
     else:
@@ -718,12 +736,15 @@ async def run_at_22():
     flag, users = read_data(path)
     if flag:
         for user in users:
+            info = des_descrypt(
+                user[1], DES_KEY).split(" ")
+            username = info[0]
             if os.path.exists(
                 os.path.join(
                     XDU_SUPPORT_PATH,
-                    f'{user[1]}-remake.json')):
+                    f'{username}-remake.json')):
                 message = get_whole_day_course(
-                    user[1],
+                    username,
                     TIME_SCHED,
                     XDU_SUPPORT_PATH,
                     datetime.now() +

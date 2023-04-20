@@ -108,6 +108,12 @@ python -m pip install nonebot_plugin_xdu_support
 <details>
 <summary>展开/收起</summary>
 
+### v0.5.12
+
++ 2023/04/20 修复定时任务出错的问题
+
++ 2023/04/19 修复网络报错问题，反馈一站式大厅的网络波动
+
 ### v0.5.7
 
 + 2023/04/12 新增物理实验查询，并整合到课表@canxin121
