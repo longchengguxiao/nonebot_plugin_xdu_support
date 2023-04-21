@@ -7,8 +7,6 @@ from pathlib import Path
 import os
 from .data_source import questions_multi, questions_single
 import random
-from pyDes import des, CBC, PAD_PKCS5
-import binascii
 from requests.cookies import RequestsCookieJar
 import httpx
 from collections import Counter
@@ -19,14 +17,13 @@ from requests import Session
 import requests
 from Crypto.PublicKey import RSA
 import base64
-from Crypto.Cipher import PKCS1_v1_5
+from Crypto.Cipher import PKCS1_v1_5, DES
 import time
 import re
 import jieba.posseg as psg
 import jieba
 from jieba import lcut
 import jionlp as jio
-import asyncio
 from nonebot.adapters.onebot.v11 import MessageEvent, Message
 
 # 添加新词
@@ -40,7 +37,11 @@ words = [
     "成绩",
     "信远",
     "更新",
-    "课表"
+    "课表",
+    "马原",
+    "物理实验",
+    "上学期",
+    "前一学期"
 ]
 search_wd = ["课表", "体育打卡", "成绩", "考试"]
 
@@ -56,7 +57,7 @@ Model = {
     "考试": "考试查询"
 }
 
-exist_md = ["体育打卡", "课表", "马原", "空闲教室", "青年大学习", "成绩", "提醒", "考试"]
+exist_md = ["体育打卡", "课表", "马原", "空闲教室", "青年大学习", "成绩", "提醒", "考试", "物理实验"]
 
 
 # 晨午晚检------------------------------------------------------------------------
@@ -270,32 +271,49 @@ def get_next_course(username: str, basic_path: Union[Path, str]) -> str:
     return message
 
 
-def get_whole_day_course(username: str, time_sche: List,
-                         basic_path: Union[Path, str], _time: int = 0) -> str:
+def get_whole_day_course(username: str,
+                         time_sche: List,
+                         basic_path: Union[Path,
+                                           str],
+                         today: Union[datetime,
+                                      str] = datetime.now()) -> str:
     message = ""
     with open(os.path.join(basic_path, f"{username}-remake.json"), "r", encoding="utf-8") as f:
         courses = json.loads(f.read())
-    today = datetime.now()
-    y = today.year
-    m = today.month
-    d = today.day
-    if _time == 1:
-        d += 1
+    if isinstance(today, str):
+        y = int(today.split("-")[0])
+        m = int(today.split("-")[1])
+        d = int(today.split("-")[2])
+    else:
+        y = today.year
+        m = today.month
+        d = today.day
     if courses.get(str(parse(f"{y}-{m}-{d}")).split(" ")[0], None):
-
         today_course: Dict = courses.get(
             str(parse(f"{y}-{m}-{d}")).split(" ")[0], None)
-        if _time == 0:
+        if datetime(
+                year=y,
+                month=m,
+                day=d) == datetime(
+                year=datetime.now().year,
+                month=datetime.now().month,
+                day=datetime.now().day):
             message += f"今天一共有{len(list(today_course.keys()))}节课需要上\n"
         else:
-            message += f"明天一共有{len(list(today_course.keys()))}节课需要上\n"
+            message += f"{y}-{m}-{d} 一共有{len(list(today_course.keys()))}节课需要上\n"
         message += "****************\n"
         for i in range(7):
             if today_course.get(str(i), None):
                 message += f"{time_sche[i][0]}-{time_sche[i][1]}\n有一节: {today_course[str(i)]['name']}\n上课地点在: {today_course[str(i)]['location']}\n"
                 message += "****************\n"
     else:
-        if _time == 0:
+        if datetime(
+                year=y,
+                month=m,
+                day=d) == datetime(
+                year=datetime.now().year,
+                month=datetime.now().month,
+                day=datetime.now().day):
             message += "今天没有课哦，安排好时间，合理学习合理放松吧!"
         else:
             message += "明天没有课哦，安排好时间，合理学习合理放松吧!"
@@ -403,39 +421,39 @@ async def get_idle_classroom(ses: EhallSession, rooms: List,
     for room in rooms:
         for s, e in time_sche:
             # 同步
-            # response2 = ses.post(
-            #     "https://ehall.xidian.edu.cn/jwapp/sys/kxjas/modules/kxjas/xdcxkxjsxq.do",
-            #     data={
-            #         "JASDM": room,
-            #         "XNXQDM": f"{XN}-{XQ}",
-            #         "KSJC": str(s),
-            #         "JSJC": str(e),
-            #         "ZYLXDM": "01",
-            #         "ZC": str(ZC),
-            #         "XQ": str(XQJ)}).json()
-            # if not response2["datas"]["xdcxkxjsxq"]["rows"]:
-            #     idle_rooms[f"{s}-{e}"].append(room)
+            response2 = ses.post(
+                "https://ehall.xidian.edu.cn/jwapp/sys/kxjas/modules/kxjas/xdcxkxjsxq.do",
+                data={
+                    "JASDM": room,
+                    "XNXQDM": f"{XN}-{XQ}",
+                    "KSJC": str(s),
+                    "JSJC": str(e),
+                    "ZYLXDM": "01",
+                    "ZC": str(ZC),
+                    "XQ": str(XQJ)}).json()
+            if not response2["datas"]["xdcxkxjsxq"]["rows"] and room not in stop_classroom:
+                idle_rooms[f"{s}-{e}"].append(room)
 
-            # 异步
-            tasks.append(
-                asyncio.ensure_future(
-                    httpx_client_post(
-                        cookies=cookies,
-                        url="https://ehall.xidian.edu.cn/jwapp/sys/kxjas/modules/kxjas/xdcxkxjsxq.do",
-                        results=idle_rooms,
-                        data={
-                            "JASDM": room,
-                            "XNXQDM": f"{XN}-{XQ}",
-                            "KSJC": str(s),
-                            "JSJC": str(e),
-                            "ZYLXDM": "01",
-                            "ZC": str(ZC),
-                            "XQ": str(XQJ)},
-                        s=s,
-                        e=e,
-                        room=room,
-                        stop_classroom=stop_classroom)))
-    await asyncio.wait(tasks)
+    #         # 异步
+    #         tasks.append(
+    #             asyncio.ensure_future(
+    #                 httpx_client_post(
+    #                     cookies=cookies,
+    #                     url="https://ehall.xidian.edu.cn/jwapp/sys/kxjas/modules/kxjas/xdcxkxjsxq.do",
+    #                     results=idle_rooms,
+    #                     data={
+    #                         "JASDM": room,
+    #                         "XNXQDM": f"{XN}-{XQ}",
+    #                         "KSJC": str(s),
+    #                         "JSJC": str(e),
+    #                         "ZYLXDM": "01",
+    #                         "ZC": str(ZC),
+    #                         "XQ": str(XQJ)},
+    #                     s=s,
+    #                     e=e,
+    #                     room=room,
+    #                     stop_classroom=stop_classroom)))
+    # await asyncio.wait(tasks)
 
     # 储存方式为{'1-2':['B-102',...]}
     return idle_rooms
@@ -463,10 +481,9 @@ def analyse_best_idle_room(idle_room: Dict[str,
         today_course = timetable.get(time_, None)
         course_locations = [x["location"] for x in today_course.values()]
         course_buildings = [
-            x.split("-")[0] if x != "待定" or x != "在线导学" else x for x in course_locations]
+            x.split("-")[0] if x != "待定" and x != "在线导学" else x for x in course_locations]
         course_rooms = [
-            x.split("-")[1] if x != "待定" or x != "在线导学" else x for x in course_locations]
-
+            x.split("-")[1] if x != "待定" and x != "在线导学" else x for x in course_locations]
         flag = 0
         message = f"结合您{time_}的课表\n****************\n"
         for i in range(len(course_buildings)):
@@ -846,12 +863,28 @@ def get_examtime(flag: int, ses: EhallSession) -> (str, List):
 
     return term, examtime
 
-# 命令预处理
+# 命令预处理--------------------------------------------------------------------------------------
+
+# 重排序，使关键词按照在句中出现的顺序排列
 
 
-def get_eventname(text: Message) -> str:
+def kws_sort(kws, tx):
+    # 初始化结果列表
+    result = []
+    # 遍历单词列表，将包含关键字的单词添加到结果列表中
+    for word in tx:
+        for keyword in kws:
+            if keyword[0] in word:
+                result.append(keyword)
+    return result
+
+# 获取事件名称
+
+
+def get_eventname(text: str) -> str:
     key = psg.lcut(text)
     kw = jio.keyphrase.extract_keyphrase(text)
+    kw = kws_sort(kws=kw, tx=text)
     flag = 0
     first_v = "去"
     for w, p in key:
@@ -861,6 +894,9 @@ def get_eventname(text: Message) -> str:
             else:
                 first_v = w
                 break
+        elif p == "t":
+            if w in kw:
+                kw.remove(w)
     if first_v == "去":
         pattern1 = f"{first_v}(.*?{kw[-1]})"
     else:
@@ -871,7 +907,10 @@ def get_eventname(text: Message) -> str:
         pattern2 = f"{kw[0]}.*?{kw[-1]}"
     else:
         return ""
-    event_name1 = re.findall(pattern1, text)[0]
+    try:
+        event_name1 = re.findall(pattern1, text)[0]
+    except IndexError:
+        event_name1 = ""
     event_name2 = re.findall(pattern2, text)[0]
     event_name = event_name1 if len(event_name1) > len(
         event_name2) else event_name2
@@ -883,8 +922,8 @@ def generate_event(event: MessageEvent, cmd: str) -> MessageEvent:
                              self_id=event.self_id,
                              post_type="message",
                              sub_type="friend",
-                             user_id=event.user_id,
                              message_type="private",
+                             user_id=event.user_id,
                              message_id=event.message_id,
                              message=[{"type": "text",
                                        "data": {"text": f"{cmd}"}}],
@@ -901,7 +940,7 @@ def generate_event(event: MessageEvent, cmd: str) -> MessageEvent:
                                      "level": event.sender.level,
                                      "role": event.sender.role,
                                      "title": event.sender.title},
-                             to_me=event.to_me,
+                             to_me=False,
                              reply=event.reply,
                              target_id=1850602750)
     return msg_event
@@ -911,6 +950,7 @@ def get_handle_event(
         tx: Message, event: MessageEvent) -> Union[MessageEvent, str]:
     for wd in words:
         jieba.add_word(wd)
+    tx = tx.replace("，", "").replace("。", "")
     word_list = lcut(tx)
 
     if "订阅" in word_list:
@@ -918,18 +958,28 @@ def get_handle_event(
             if ex_md in word_list:
                 msg_event = generate_event(event, f"xdu功能订阅 {Model[ex_md]}")
                 return msg_event
+        return generate_event(event, f"xdu功能订阅")
     elif "退订" in word_list:
         for ex_md in exist_md:
             if ex_md in word_list:
                 msg_event = generate_event(event, f"xdu功能退订 {Model[ex_md]}")
                 return msg_event
+        return generate_event(event, f"xdu功能退订")
     else:
         for search in search_wd:
             if search in word_list:
                 if search == "课表" and "更新" in word_list:
                     msg_event = generate_event(event, f"更新课表")
+                elif search == "考试" and ("上学期" in word_list or "前一学期" in word_list):
+                    msg_event = generate_event(event, "考试查询 上学期")
                 else:
-                    msg_event = generate_event(event, f"{search}查询")
+                    try:
+                        time_select = jio.parse_time(
+                            tx, time_base=time.time()).get("time")[0].split(" ")[0]
+                    except BaseException:
+                        time_select = ""
+                    msg_event = generate_event(
+                        event, f"{search}查询{time_select}")
                 return msg_event
         if "空闲教室" in word_list:
             build = ""
@@ -965,23 +1015,22 @@ def get_handle_event(
             return ""
 
 
-# 加密解密-------------------------------------------------------------------------
+# 加密解密-----------------------------------------------------------------------------------------
 
 
-def des_encrypt(s: str, key: str) -> bytes:
-    secret_key = key
-    iv = secret_key
-    des_obj = des(secret_key, CBC, iv, pad=None, padmode=PAD_PKCS5)
-    secret_bytes = des_obj.encrypt(s, padmode=PAD_PKCS5)
-    return binascii.b2a_hex(secret_bytes)
+def des_descrypt(ciphertext, key):
+    ciphertext = base64.b64decode(ciphertext)
+    iv = key
+    cipher = DES.new(key, DES.MODE_CBC, iv)
+    plaintext = cipher.decrypt(ciphertext)
 
+    # Remove PKCS7 padding
+    padding_len = plaintext[-1]
+    padding = bytes([padding_len]) * padding_len
+    if padding_len > 0 and plaintext.endswith(padding):
+        plaintext = plaintext[:-padding_len]
 
-def des_descrypt(s: str, key: str) -> bytes:
-    secret_key = key
-    iv = secret_key
-    des_obj = des(secret_key, CBC, iv, pad=None, padmode=PAD_PKCS5)
-    decrypt_str = des_obj.decrypt(binascii.a2b_hex(s), padmode=PAD_PKCS5)
-    return decrypt_str
+    return plaintext.decode()
 
 
 def encryption(text: str, public_key: bytes):

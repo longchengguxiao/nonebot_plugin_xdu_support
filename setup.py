@@ -4,7 +4,7 @@ path = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(path, "README.md"), "r", encoding="utf-8") as f:
     long_description = f.read()
     setup(name='nonebot_plugin_xdu_support',  # 包名
-          version='0.5.6',  # 版本号
+          version='0.5.15',  # 版本号
           description='A plugin based on nonebot2, which is support XDU services.',
           long_description=long_description,
           long_description_content_type="text/markdown",
@@ -27,7 +27,8 @@ with open(os.path.join(path, "README.md"), "r", encoding="utf-8") as f:
               "pycryptodome",
               "python-dateutil",
               "setuptools",
-              "jieba"
+              "jieba",
+              "pilk"
           ],
           license='AGPL-3.0 License',
           packages=find_packages(),

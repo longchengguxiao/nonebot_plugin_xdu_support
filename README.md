@@ -30,6 +30,34 @@ _✨ 基于nonebot的XDU服务插件 ✨_
     </a>
 </p>
 
+## 新版特性
+
+!> 最新版本为v0.5.10
+
++ 加入了**模糊匹配**，不再需要完整的命令格式
+
+> 用户：我想查询本周二信远I的空闲教室
+>
+> 用户：我想要订阅体育打卡
+> 
+> 用户：我想订阅物理实验
+> 
+> 用户：我想查看下周一的课表
+
+此类语句都可以识别
+
++ 语音识别，但是只支持普通话
+
++ 课表查询支持添加**时间参数**
+
++ 新增物理实验查询，并可以添加在课表中
+
++ 新增成绩查询和考试时间查询
+
++ 新增图片转文字，方便大家观看
+
++ 密码采用**网页预加密**方式，更加安全
+
 ## 说在前面
 
 + 请插件使用者仔细阅读此文档,确保能够正确理解命令。定时任务报错时会联系bot的superuser，因此一定要填好配置项才可以使用
@@ -73,12 +101,36 @@ python -m pip install nonebot_plugin_xdu_support
 
 ## 详细用法
 
-> 详细用法参见[使用文档](https://longchengguxiao.github.io/plugindoc/#/nonebot_plugin_xdu_support/README)
+> 详细用法参见[使用文档](https://lcgx.xdu.org.cn/#/nonebot_plugin_xdu_support/README)
 
 ## 更新
 
 <details>
 <summary>展开/收起</summary>
+
+### v0.5.15
+
++ 2023/04/21 修复遗留的考试时间查询未使用app_id问题
+
++ 2023/04/21 修复单独使用“订阅”时无法触发匹配的问题
+
+### v0.5.13
+
++ 2023/04/20 修复定时任务出错的问题
+
++ 2023/04/19 修复网络报错问题，反馈一站式大厅的网络波动
+
+### v0.5.7
+
++ 2023/04/12 新增物理实验查询，并整合到课表@canxin121
+
++ 2023/04/19 增加图形化设计，将文字描述转化为图片，更加直观
+
++ 2023/04/19 将原有的密码加密方式改为在网页中进行预加密服务，更加安全
+
++ 2023/04/19 部分功能支持语音识别(需要填写baidu/tencent的api_key)
+
++ 2023/04/19 支持模糊匹配，不再需要按照严格的命令格式啦(详情见文档)
 
 ### v0.4.5
 
@@ -152,3 +204,9 @@ python -m pip install nonebot_plugin_xdu_support
 感谢 [@cyk1464](https://github.com/cyk1464) 提供学生健康信息脚本
 
 感谢 [JioNLP](https://github.com/dongrixinyu/JioNLP) 提供时间部分的自然语言处理服务
+
+感谢 [canxin121](https://github.com/canxin121) 提供物理实验支持
+
+感谢 [nonebot_plugin_record](https://github.com/itsevin/nonebot_plugin_record) 提供音频识别服务
+
+感谢 [nonebot-plugin-txt2img](https://github.com/mobyw/nonebot-plugin-txt2img) 提供文字转图片
