@@ -958,11 +958,13 @@ def get_handle_event(
             if ex_md in word_list:
                 msg_event = generate_event(event, f"xdu功能订阅 {Model[ex_md]}")
                 return msg_event
+        return generate_event(event, f"xdu功能订阅")
     elif "退订" in word_list:
         for ex_md in exist_md:
             if ex_md in word_list:
                 msg_event = generate_event(event, f"xdu功能退订 {Model[ex_md]}")
                 return msg_event
+        return generate_event(event, f"xdu功能退订")
     else:
         for search in search_wd:
             if search in word_list:

@@ -1199,6 +1199,8 @@ async def _(event: MessageEvent, bot: Bot, args: Message = CommandArg()):
             term, examtimes = get_examtime(1, ses)
         else:
             term, examtimes = get_examtime(0, ses)
+        if not examtimes:
+            await examination.finish(f"当前查询学期{term}没有安排任何考试，等安排了再查询吧")
         examed = []
         examed.append(f"{term}学期的已完成考试")
         unexamed = []

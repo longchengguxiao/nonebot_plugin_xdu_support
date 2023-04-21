@@ -108,6 +108,12 @@ python -m pip install nonebot_plugin_xdu_support
 <details>
 <summary>展开/收起</summary>
 
+### v0.5.15
+
++ 2023/04/21 修复遗留的考试时间查询未使用app_id问题
+
++ 2023/04/21 修复单独使用“订阅”时无法触发匹配的问题
+
 ### v0.5.13
 
 + 2023/04/20 修复定时任务出错的问题
