@@ -1,5 +1,3 @@
-from .record2txt import get_text, type_checker
-from .txt2img import Txt2Img
 import time
 import re
 import asyncio
@@ -26,6 +24,8 @@ from libxduauth import EhallSession, SportsSession, XKSession
 from .model import check, cron_check, get_sport_record, get_timetable, get_whole_day_course, get_next_course, get_question, get_teaching_buildings, get_classroom, get_idle_classroom, get_url_marker, get_url_routeplan, get_min_distance_aed, des_descrypt, analyse_best_idle_room, punch_daily_health, get_youthstudy_names, get_verify, get_grade, get_examtime, get_handle_event, get_eventname
 from .config import Config
 from .physic import getwrit_pe, is_wright
+from .record2txt import get_text, type_checker
+from .txt2img import Txt2Img
 
 # 启动定时器---------------------------------------------------------------
 
@@ -92,12 +92,17 @@ SK = xdu_config.sk
 appname = xdu_config.appname
 secret_id = xdu_config.asr_api_key
 secret_key = xdu_config.asr_secret_key
+go_cqhttp_data_path = xdu_config.go_cqhttp_data_path
 
 if not secret_id or not secret_key:
     record_flag = False
     logger.warning("没有填写语音服务的apikey，无法使用语音识别")
 else:
-    record_flag = True
+    if os.path.exists(os.path.join(go_cqhttp_data_path, "data", "voices")):
+        record_flag = True
+    else:
+        logger.warning(f"录音文件目录:{os.path.exists(os.path.join(go_cqhttp_data_path, 'data', 'voices'))}不存在，请检查")
+        record_flag = False
 
 if not DES_KEY:
     DES_KEY = b"mdbylcgx"
@@ -1186,6 +1191,7 @@ async def _(event: MessageEvent, bot: Bot, args: Message = CommandArg()):
         password = info[1]
         try:
             ses = EhallSession(username, password)
+            ses.use_app(4768687067472349)
             msg = args.extract_plain_text().strip()
         except requests.exceptions.RequestException:
             await examination.finish("一站式大厅又出错了，真是可恶啊")
