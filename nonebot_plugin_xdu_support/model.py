@@ -848,10 +848,21 @@ def get_grade(ses: EhallSession) -> (List, str):
 
 def get_examtime(flag: int, ses: EhallSession) -> (str, List):
     terms_url = "https://ehall.xidian.edu.cn/jwapp/sys/studentWdksapApp/modules/wdksap/xnxqcx.do"
-    term = ses.post(terms_url,
-                    data={
-                        "*order": "-PX,-DM"
-                    }).json()["datas"]["xnxqcx"]["rows"][flag]["DM"]
+    now = datetime.now()
+    if flag == 0:
+        if now.month < 7 or (now.month == 7 and now.day <= 1):
+            term = f"{now.year-1}-{now.year}-2"  # 如果还没有过7月1号
+        else:
+            term = f"{now.year}-{now.year+1}-1"  # 如果已经过了7月1号
+    else:
+        if now.month < 7 or (now.month == 7 and now.day <= 1):
+            term = f"{now.year-1}-{now.year}-1"  # 如果还没有过7月1号
+        else:
+            term = f"{now.year-1}-{now.year}-2"  # 如果已经过了7月1号
+    # term = ses.post(terms_url,
+    #                 data={
+    #                     "*order": "-PX,-DM"
+    #                 }).json()["datas"]["xnxqcx"]["rows"][flag]["DM"]
 
     examtime_url = "https://ehall.xidian.edu.cn/jwapp/sys/studentWdksapApp/modules/wdksap/wdksap.do"
     data = {

@@ -32,7 +32,7 @@ _✨ 基于nonebot的XDU服务插件 ✨_
 
 ## 新版特性
 
-!> 最新版本为v0.5.10
+!> 最新版本为v0.5.16
 
 + 加入了**模糊匹配**，不再需要完整的命令格式
 
@@ -107,6 +107,12 @@ python -m pip install nonebot_plugin_xdu_support
 
 <details>
 <summary>展开/收起</summary>
+
+### v0.5.16
+
++ 2023/04/22 修复考试查询时间错误的问题@canxin121
+
++ 2023/04/22 修复物理实验查询的无法使用的bug，并增加对应课程老师@canxin121
 
 ### v0.5.15
 
