@@ -741,25 +741,28 @@ async def run_at_22():
     flag, users = read_data(path)
     if flag:
         for user in users:
-            info = des_descrypt(
-                user[1], DES_KEY).split(" ")
-            username = info[0]
-            if os.path.exists(
-                os.path.join(
-                    XDU_SUPPORT_PATH,
-                    f'{username}-remake.json')):
-                message = get_whole_day_course(
-                    username,
-                    TIME_SCHED,
-                    XDU_SUPPORT_PATH,
-                    datetime.now() +
-                    timedelta(
-                        days=1))
-                if message:
-                    title = "明日课程表"
-                    txt2img = Txt2Img()
-                    pic = txt2img.draw(title, message)
-                    await bot.send_private_msg(user_id=int(user[0]), message=MessageSegment.image(pic))
+            try:
+                info = des_descrypt(
+                    user[1], DES_KEY).split(" ")
+                username = info[0]
+                if os.path.exists(
+                    os.path.join(
+                        XDU_SUPPORT_PATH,
+                        f'{username}-remake.json')):
+                    message = get_whole_day_course(
+                        username,
+                        TIME_SCHED,
+                        XDU_SUPPORT_PATH,
+                        datetime.now() +
+                        timedelta(
+                            days=1))
+                    if message:
+                        title = "明日课程表"
+                        txt2img = Txt2Img()
+                        pic = txt2img.draw(title, message)
+                        await bot.send_private_msg(user_id=int(user[0]), message=MessageSegment.image(pic))
+            except:
+                pass
 
     else:
         await bot.send_private_msg(user_id=int(superusers[0]),
