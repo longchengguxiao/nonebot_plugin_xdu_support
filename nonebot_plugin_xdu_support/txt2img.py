@@ -248,11 +248,11 @@ class Txt2Img:
                 self.title_font_size
                 + self.title_line_space
                 + self.text_font_size * text_rows
-                + (text_rows - 1) * (self.text_line_space)
+                + text_rows * (self.text_line_space)
             )
         else:
             text_total_height = self.text_font_size * text_rows + \
-                (text_rows - 1) * (self.text_line_space)
+                text_rows * (self.text_line_space)
 
         out_img = Image.new(
             mode="RGBA",

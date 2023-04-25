@@ -1,5 +1,6 @@
 import datetime
 import json
+import os
 import requests
 from bs4 import BeautifulSoup
 import numpy as np
@@ -92,6 +93,7 @@ def getwrit_pe(user: str, passwd: str, path: str) -> (str, str, bool):
     # print(data_np)
     data_np = data_np[:, [1, 3, 4, 5]]
     data_np[:, 1] = [item[5:] for item in data_np[:, 1]]
+
     for row in data_np:
         row[1] = row[1].replace('18:30-20:45', '6').replace('15:55-18:10', '5')
         date_str = row[-2]  # 获取子列表中的最后一个元素
@@ -132,6 +134,17 @@ def getwrit_pe(user: str, passwd: str, path: str) -> (str, str, bool):
         write_ = False
     # 处理成课表str信息，发送给用户
     #######################################################
+    # 获取当前文件的绝对路径
+    current_file_path = os.path.abspath(__file__)
+    # 获取父目录路径
+    parent_dir_path = os.path.dirname(current_file_path)
+    with open(rf'{parent_dir_path}/class_ever.json', 'r', encoding='utf-8') as f:
+        class_teacher = json.load(f)
+    for each in data:
+        key1 = each[1][0:-5]
+        key2 = each[3]
+        teacher = class_teacher[key1][key2]
+        each.append(teacher)
     for row in data:
         del row[0], row[1], row[4]
         row[2] = row[2] + row[1]
@@ -141,6 +154,8 @@ def getwrit_pe(user: str, passwd: str, path: str) -> (str, str, bool):
         row[3] = '-----成绩:' + row[3] + '\n'
         row[4] = '-----归一成绩:' + row[4] + '\n'
         row[5] = '-----备注:' + row[5] + '\n'
+        row[6] = '-----教师:' + row[6] + '\n'
+        row.insert(3,row.pop(6))
     data_str = [[str(x) for x in row] for row in data]
 
     output_str = ''.join([''.join(row) for row in data_str])

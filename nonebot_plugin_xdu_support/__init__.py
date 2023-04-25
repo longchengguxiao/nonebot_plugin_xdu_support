@@ -78,8 +78,8 @@ TIME_SCHED = [
     ("10:25", "12:00"),
     ("14:00", "15:35"),
     ("15:55", "17:30"),
-    ("15:55", "18:10"),
     ("19:00", "20:35"),
+    ("15:55", "18:10"),
     ("18:30", "20:45")
 ]
 
@@ -741,25 +741,28 @@ async def run_at_22():
     flag, users = read_data(path)
     if flag:
         for user in users:
-            info = des_descrypt(
-                user[1], DES_KEY).split(" ")
-            username = info[0]
-            if os.path.exists(
-                os.path.join(
-                    XDU_SUPPORT_PATH,
-                    f'{username}-remake.json')):
-                message = get_whole_day_course(
-                    username,
-                    TIME_SCHED,
-                    XDU_SUPPORT_PATH,
-                    datetime.now() +
-                    timedelta(
-                        days=1))
-                if message:
-                    title = "明日课程表"
-                    txt2img = Txt2Img()
-                    pic = txt2img.draw(title, message)
-                    await bot.send_private_msg(user_id=int(user[0]), message=MessageSegment.image(pic))
+            try:
+                info = des_descrypt(
+                    user[1], DES_KEY).split(" ")
+                username = info[0]
+                if os.path.exists(
+                    os.path.join(
+                        XDU_SUPPORT_PATH,
+                        f'{username}-remake.json')):
+                    message = get_whole_day_course(
+                        username,
+                        TIME_SCHED,
+                        XDU_SUPPORT_PATH,
+                        datetime.now() +
+                        timedelta(
+                            days=1))
+                    if message:
+                        title = "明日课程表"
+                        txt2img = Txt2Img()
+                        pic = txt2img.draw(title, message)
+                        await bot.send_private_msg(user_id=int(user[0]), message=MessageSegment.image(pic))
+            except:
+                pass
 
     else:
         await bot.send_private_msg(user_id=int(superusers[0]),
@@ -1227,9 +1230,8 @@ async def _(event: PrivateMessageEvent):
     users_id = [x[0] for x in users]
     user_id = str(event.user_id)
     if user_id in users_id:
-        username = users[users_id.index(user_id)][1]
-        password = des_descrypt(
-            users[users_id.index(user_id)][2], DES_KEY).decode()
+        username ,password = des_descrypt(
+            users[users_id.index(user_id)][1], DES_KEY).split()
         timetable, conflicts, iswrite = getwrit_pe(
             username, password, path=f'{XDU_SUPPORT_PATH}/{username}-remake.json')
         timetable += '\n'
@@ -1240,20 +1242,22 @@ async def _(event: PrivateMessageEvent):
         except requests.exceptions.RequestException:
             await Pe_.finish("网络错误，请联系机器人管理员")
         if not iswrite:
-            msg += MessageSegment.text("当前物理未写入课表，如需写入请先订阅课表提醒")
+            msg += MessageSegment.text("当前物理未写入课表，如需写入请先订阅课表提醒\n")
         else:
-            msg += MessageSegment.text('成功更新的物理课表')
+            msg += MessageSegment.text('成功更新订阅的物理课表\n')
         if len(conflicts) > 0:
             msg += MessageSegment.text('\n\n注意！存在课程冲突！\n')
             msg += MessageSegment.text(conflicts)
+            msg += MessageSegment.text("\n")
 
         title = "物理实验"
         txt2img = Txt2Img()
-        pic = txt2img.draw(title, msg)
+        pic = txt2img.draw(title, str(msg))
         res = MessageSegment.image(pic)
         await Pe_.finish(res)
     else:
         await Pe_.finish("请先订阅实验查询功能,再进行查询")
+
 
 # 提醒记事------------------------------------------------------------------------------------
 
