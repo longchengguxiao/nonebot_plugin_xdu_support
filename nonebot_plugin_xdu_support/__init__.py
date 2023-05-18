@@ -1538,7 +1538,7 @@ async def _(event: PrivateMessageEvent):
                 target = 'https://ids.xidian.edu.cn/authserver/login?service=' \
                          'https://learning.xidian.edu.cn/cassso/xidian'
                 ses = IDSSession(target=target, username=username, password=password)
-                msg = get_work(ses)
+                msg = get_work(ses, False)
             except requests.exceptions.RequestException:
                 await examination.finish("一站式大厅又出错了，真是可恶啊")
             if msg[0]:
@@ -1554,6 +1554,36 @@ async def _(event: PrivateMessageEvent):
     else:
         logger.warning("Work.txt文件打开失败")
         await work.finish("出错了，请联系管理员")
+
+
+@scheduler.scheduled_job("cron", hour="8", month="2-7,9-12")
+async def run_at_22():
+    bot = nonebot.get_bot()
+    flag, users = read_data(Path(XDU_SUPPORT_PATH, 'Work.txt'))
+    if flag:
+        users_id = [x[0] for x in users]
+        for user_id in users_id:
+            info = des_descrypt(
+                users[users_id.index(user_id)][1], DES_KEY).split(" ")
+            username = info[0]
+            password = info[1]
+            msg = [0, '']
+            try:
+                target = 'https://ids.xidian.edu.cn/authserver/login?service=' \
+                         'https://learning.xidian.edu.cn/cassso/xidian'
+                ses = IDSSession(target=target, username=username, password=password)
+                msg = get_work(ses, False)
+            except requests.exceptions.RequestException:
+                logger.warning(f"用户{user_id}获取未完成作业时出错: 一站式访问失败")
+            if msg[0]:
+                title = "未完成作业"
+                txt2img = Txt2Img()
+                pic = txt2img.draw(title, msg[1])
+                await bot.send_private_msg(user_id=int(user_id), message=MessageSegment.image(pic))
+            else:
+                logger.warning(f"用户{user_id}获取未完成作业时出错:{msg[1]}")
+    else:
+        logger.warning("Work.txt文件打开失败")
 
 
 # 命令预处理----------------------------------------------------------------------------------

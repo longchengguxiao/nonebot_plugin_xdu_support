@@ -884,13 +884,13 @@ def get_examtime(flag: int, ses: EhallSession) -> (str, List):
 # 未完成作业查询-----------------------------------------------------------------------------------
 
 
-def get_work(ses: IDSSession) -> list:
+def get_work(ses: IDSSession, is_push: bool) -> list:
     """
     获取未完成作业及截止时间并处理
 
     params:
     ses: 附带登录信息和cookie的西电一站式session
-    auto: 是否为定时器触发
+    is_push: 是否为定时器触发
 
     return：
     [flag:int , msg: str]
@@ -928,10 +928,10 @@ def get_work(ses: IDSSession) -> list:
                 continue
             else:
                 msg += f"""
-                {div.find('p').text}
-                课程: {spans[1].text}
-                剩余时长: {spans[2].text if len(spans) == 4 else ''}
-                -------------------------------
+            {div.find('p').text}
+            课程: {spans[1].text}
+            剩余时长: {spans[2].text if len(spans) == 4 else ''}
+            -------------------------------
                 """
 
     return [flag, msg]
