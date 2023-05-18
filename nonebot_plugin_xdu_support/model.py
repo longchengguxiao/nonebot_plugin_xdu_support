@@ -1,5 +1,6 @@
+import libxduauth
 import pytz
-from libxduauth import EhallSession, SportsSession
+from libxduauth import EhallSession, SportsSession, IDSSession
 import json
 from datetime import datetime, timedelta
 from typing import List, Dict, Union, Tuple
@@ -24,6 +25,7 @@ import jieba.posseg as psg
 import jieba
 from jieba import lcut
 import jionlp as jio
+from lxml import etree
 from nonebot.adapters.onebot.v11 import MessageEvent, Message
 
 # 添加新词
@@ -41,10 +43,10 @@ words = [
     "马原",
     "物理实验",
     "上学期",
-    "前一学期"
+    "前一学期",
+    "作业"
 ]
-search_wd = ["课表", "体育打卡", "成绩", "考试"]
-
+search_wd = ["课表", "体育打卡", "成绩", "考试", "作业"]
 
 Model = {
     "体育打卡": "体育打卡",
@@ -54,10 +56,11 @@ Model = {
     "青年大学习": "青年大学习",
     "成绩": "成绩查询",
     "提醒": "提醒",
-    "考试": "考试查询"
+    "考试": "考试查询",
+    "作业": "作业查询"
 }
 
-exist_md = ["体育打卡", "课表", "马原", "空闲教室", "青年大学习", "成绩", "提醒", "考试", "物理实验"]
+exist_md = ["体育打卡", "课表", "马原", "空闲教室", "青年大学习", "成绩", "提醒", "考试", "物理实验", "作业"]
 
 
 # 晨午晚检------------------------------------------------------------------------
@@ -108,6 +111,7 @@ def check(username: str, password: str) -> str:
     except BaseException:
         message += '信息有误或网页无法打开,操作失败'
     return message
+
 
 # 体育打卡----------------------------------------------------------------------------------
 
@@ -164,6 +168,7 @@ def get_sport_record(ses: SportsSession, username: str) -> (bool, str):
 
     return False, message
 
+
 # 课表查询------------------------------------------------------------------
 
 
@@ -205,7 +210,7 @@ def get_timetable(ses: EhallSession, username: str,
         for j in range(len(i['SKZC'])):
             if i['SKZC'][j] == '1' and int(
                     i['KSJC']) <= 10 and int(
-                    i['JSJC']) <= 10:
+                i['JSJC']) <= 10:
                 courseList[j][int(i['SKXQ']) - 1].append({
                     'name': i['KCM'],
                     'location': i['JASMC'],
@@ -216,7 +221,7 @@ def get_timetable(ses: EhallSession, username: str,
         for day_cnt in range(len(courseList[week_cnt])):
             if courseList[week_cnt][day_cnt]:
                 date = termStartDay + \
-                    timedelta(days=week_cnt * 7 + day_cnt)  # 从第一 周的第一天起
+                       timedelta(days=week_cnt * 7 + day_cnt)  # 从第一 周的第一天起
                 remake[str(
                     parse(f"{date.year}-{date.month}-{date.day}")).split(" ")[0]] = {}
                 for course in courseList[week_cnt][day_cnt]:
@@ -295,9 +300,9 @@ def get_whole_day_course(username: str,
                 year=y,
                 month=m,
                 day=d) == datetime(
-                year=datetime.now().year,
-                month=datetime.now().month,
-                day=datetime.now().day):
+            year=datetime.now().year,
+            month=datetime.now().month,
+            day=datetime.now().day):
             message += f"今天一共有{len(list(today_course.keys()))}节课需要上\n"
         else:
             message += f"{y}-{m}-{d} 一共有{len(list(today_course.keys()))}节课需要上\n"
@@ -311,9 +316,9 @@ def get_whole_day_course(username: str,
                 year=y,
                 month=m,
                 day=d) == datetime(
-                year=datetime.now().year,
-                month=datetime.now().month,
-                day=datetime.now().day):
+            year=datetime.now().year,
+            month=datetime.now().month,
+            day=datetime.now().day):
             message += "今天没有课哦，安排好时间，合理学习合理放松吧!"
         else:
             message += "明天没有课哦，安排好时间，合理学习合理放松吧!"
@@ -384,10 +389,11 @@ def get_classroom(ses: EhallSession, build: str) -> List:
             "*order": "+LC, +JASMC",
             "pageSize": "999"}).json()
     return [x["JASMC"] for x in rooms["datas"]
-            ["cxjsqk"]["rows"] if "休息室" not in x["JASMC"]]
+    ["cxjsqk"]["rows"] if "休息室" not in x["JASMC"]]
 
 
-async def httpx_client_post(cookies: RequestsCookieJar, url: str, results: Dict[str, List], data: Dict, s: int, e: int, room: str, stop_classroom: List):
+async def httpx_client_post(cookies: RequestsCookieJar, url: str, results: Dict[str, List], data: Dict, s: int, e: int,
+                            room: str, stop_classroom: List):
     async with httpx.AsyncClient(cookies=cookies) as client:
         resp = (await client.post(url, data=data)).json()
         if not resp["datas"]["xdcxkxjsxq"]["rows"] and room not in stop_classroom:
@@ -398,10 +404,10 @@ async def get_idle_classroom(ses: EhallSession, rooms: List,
                              time_: str, stop_classroom: List) -> Dict[str, List[str]]:
     y, m, d = time_.split("-")
     if 1 <= int(m) <= 7:
-        XN = f'{int(y)-1}-{y}'
+        XN = f'{int(y) - 1}-{y}'
         XQ = '2'
     else:
-        XN = f'{y}-{int(y)+1}'
+        XN = f'{y}-{int(y) + 1}'
         XQ = '1'
     response = ses.post(
         "https://ehall.xidian.edu.cn/jwapp/sys/kxjas/modules/kxjas/rqzhzcjc.do",
@@ -506,7 +512,7 @@ def analyse_best_idle_room(idle_room: Dict[str,
                 collection_rooms = sorted(
                     collection_rooms.items(), key=lambda x: (-x[1], x[0]))
                 best_ans = collection_rooms[0]
-                message += f"推荐您在第{time_sche[course_time]}节课（{list(today_course.values())[i]['name']}）前后\n去 {building}-{best_ans[0]+int(course_rooms[i])} 教室自习\n" \
+                message += f"推荐您在第{time_sche[course_time]}节课（{list(today_course.values())[i]['name']}）前后\n去 {building}-{best_ans[0] + int(course_rooms[i])} 教室自习\n" \
                            f"离您的本节课教室（{course_buildings[i]}-{course_rooms[i]}）较近且空的时间较多,足足有{best_ans[1]}节课\n" \
                            f"****************\n"
         if flag == 0:
@@ -579,7 +585,7 @@ def get_min_distance_aed(now_lat: str = "34.12501587001219",
             min_dist = info["distance"]
             aed_min_dist = info
         if info["id"] == 282418 or info["id"] == 282419 or info["id"] == 282414 or info[
-                "id"] == 282417 or info["id"] == 282343 or info["id"] == 282365 or info["id"] == 282351:
+            "id"] == 282417 or info["id"] == 282343 or info["id"] == 282365 or info["id"] == 282351:
             aed_infos.append(info)
     return aed_min_dist, min_dist, aed_infos
 
@@ -611,11 +617,11 @@ def get_url_marker(lat: str, lng: str, SK: str, appname: str) -> str:
     url = base_url + signed_url
     return url
 
+
 # 每日健康信息---------------------------------------------------------------------
 
 
 def punch_daily_health(username: str, password: str) -> str:
-
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4515.159 Safari/537.36'
     }
@@ -708,7 +714,7 @@ def get_youthstudy_names(ses: Session,
         data={
             "account": username,
             "is_quick": 0,
-            "pass": f"{encryption(password,public_key.encode('utf-8'))}",
+            "pass": f"{encryption(password, public_key.encode('utf-8'))}",
             "verify": verify})
     resp = res.json()
     if resp.get("msg") != "success":
@@ -746,7 +752,6 @@ def get_terms(ses: EhallSession) -> List:
 
 
 def get_grade(ses: EhallSession) -> (List, str):
-
     msg = []
 
     terms = [term["XNXQDM"] for term in get_terms(ses)]
@@ -843,6 +848,7 @@ def get_grade(ses: EhallSession) -> (List, str):
 
     return msg, f'入学来的加权平均成绩：{total[0] / total[1]:.2f}'
 
+
 # 考试时间获取--------------------------------------------------------------------
 
 
@@ -851,14 +857,14 @@ def get_examtime(flag: int, ses: EhallSession) -> (str, List):
     now = datetime.now()
     if flag == 0:
         if now.month < 7 or (now.month == 7 and now.day <= 1):
-            term = f"{now.year-1}-{now.year}-2"  # 如果还没有过7月1号
+            term = f"{now.year - 1}-{now.year}-2"  # 如果还没有过7月1号
         else:
-            term = f"{now.year}-{now.year+1}-1"  # 如果已经过了7月1号
+            term = f"{now.year}-{now.year + 1}-1"  # 如果已经过了7月1号
     else:
         if now.month < 7 or (now.month == 7 and now.day <= 1):
-            term = f"{now.year-1}-{now.year}-1"  # 如果还没有过7月1号
+            term = f"{now.year - 1}-{now.year}-1"  # 如果还没有过7月1号
         else:
-            term = f"{now.year-1}-{now.year}-2"  # 如果已经过了7月1号
+            term = f"{now.year - 1}-{now.year}-2"  # 如果已经过了7月1号
     # term = ses.post(terms_url,
     #                 data={
     #                     "*order": "-PX,-DM"
@@ -874,6 +880,63 @@ def get_examtime(flag: int, ses: EhallSession) -> (str, List):
 
     return term, examtime
 
+
+# 未完成作业查询-----------------------------------------------------------------------------------
+
+
+def get_work(ses: IDSSession) -> list:
+    """
+    获取未完成作业及截止时间并处理
+
+    params:
+    ses: 附带登录信息和cookie的西电一站式session
+    auto: 是否为定时器触发
+
+    return：
+    [flag:int , msg: str]
+    flag标识符，当正确请求网页并返回结果时flag为1，否则为0
+    msg处理后的信息 可能包括天气信息、问候语、作业
+    """
+    try:
+        res = ses.get(
+            "https://mooc1-api.chaoxing.com/work/stu-work",
+            headers={
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
+                          'q=0.8,application/signed-exchange;v=b3;q=0.7',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)'
+                              ' Chrome/113.0.0.0 Safari/537.36 Edg/113.0.1774.42'
+            }
+        )
+    except requests.exceptions.RequestException as e:
+        flag = 0
+        msg = "估计代码写的有问题"
+    except Exception as e:
+        flag = 0
+        msg = str(e)
+    else:
+        flag = 1
+        html = etree.HTML(res.text)
+        divs = html.xpath('//*[@id="content"]/ul/li/div')
+
+        msg = ''
+        for div in divs:
+            spans = div.findall('span')
+            status = spans[0].text
+            if status == '已完成':
+                break
+            elif status == '待批阅':
+                continue
+            else:
+                msg += f"""
+                {div.find('p').text}
+                课程: {spans[1].text}
+                剩余时长: {spans[2].text if len(spans) == 4 else ''}
+                -------------------------------
+                """
+
+    return [flag, msg]
+
+
 # 命令预处理--------------------------------------------------------------------------------------
 
 # 重排序，使关键词按照在句中出现的顺序排列
@@ -888,6 +951,7 @@ def kws_sort(kws, tx):
             if keyword[0] in word:
                 result.append(keyword)
     return result
+
 
 # 获取事件名称
 
