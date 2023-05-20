@@ -32,7 +32,7 @@ _✨ 基于nonebot的XDU服务插件 ✨_
 
 ## 新版特性
 
-!> 最新版本为v0.5.16
+!> 最新版本为v0.5.17
 
 + 加入了**模糊匹配**，不再需要完整的命令格式
 
@@ -107,6 +107,10 @@ python -m pip install nonebot_plugin_xdu_support
 
 <details>
 <summary>展开/收起</summary>
+
+### v0.5.17
+
++ 2023/05/18 新增作业查询提醒功能@just1greed
 
 ### v0.5.16
 
@@ -216,3 +220,5 @@ python -m pip install nonebot_plugin_xdu_support
 感谢 [nonebot_plugin_record](https://github.com/itsevin/nonebot_plugin_record) 提供音频识别服务
 
 感谢 [nonebot-plugin-txt2img](https://github.com/mobyw/nonebot-plugin-txt2img) 提供文字转图片
+
+感谢 [just1greed](https://github.com/just1greed) 提供学习通作业提醒支持
