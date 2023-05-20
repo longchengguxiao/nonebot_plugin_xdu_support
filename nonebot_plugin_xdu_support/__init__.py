@@ -21,8 +21,8 @@ from nonebot.log import logger
 import nonebot
 
 import jionlp as jio
-from libxduauth import EhallSession, SportsSession, XKSession
-from .model import check, cron_check, get_sport_record, get_timetable, get_whole_day_course, get_next_course, get_question, get_teaching_buildings, get_classroom, get_idle_classroom, get_url_marker, get_url_routeplan, get_min_distance_aed, des_descrypt, analyse_best_idle_room, punch_daily_health, get_youthstudy_names, get_verify, get_grade, get_examtime, get_handle_event, get_eventname
+from libxduauth import EhallSession, SportsSession, XKSession, IDSSession
+from .model import check, cron_check, get_sport_record, get_timetable, get_whole_day_course, get_next_course, get_question, get_teaching_buildings, get_classroom, get_idle_classroom, get_url_marker, get_url_routeplan, get_min_distance_aed, des_descrypt, analyse_best_idle_room, punch_daily_health, get_youthstudy_names, get_verify, get_grade, get_examtime, get_handle_event, get_eventname, get_work
 from .config import Config
 from .physic import getwrit_pe, is_wright
 from .record2txt import get_text, type_checker
@@ -46,7 +46,8 @@ MODLE = {
     "成绩查询": "Ehall",
     "提醒": "TX",
     "考试查询": "Ehall",
-    "物理实验查询": "Pe"
+    "物理实验查询": "Pe",
+    "作业查询": "Work"
 }
 
 MODEL_NEED = {
@@ -56,7 +57,8 @@ MODEL_NEED = {
     "MY": ["随便输入一些吧，反正也不需要补充信息~"],
     "Youth": ["陕西青少年大数据服务平台账号", "青少年大数据密码"],
     "TX": ["随便输入一些吧，反正也不需要补充信息~"],
-    "Pe": ["物理实验学号", "密码"]
+    "Pe": ["物理实验学号", "密码"],
+    "Work": ["学号", "一站式大厅密码"]
 }
 
 MODEL_RUN_TIME = {
@@ -70,7 +72,9 @@ MODEL_RUN_TIME = {
     "青年大学习": "主动返回本组织内当期青年大学习未完成名单",
     "成绩查询": "返回所有必修课均分以及近两学期课程的详细分数",
     "提醒": "记下哪些ddl吧，通过戳一戳返回",
-    "考试查询": "返回最近学期的考试时间"
+    "考试查询": "返回最近学期的考试时间",
+    "作业查询": "被动：每天早上8点私聊一次提醒未完成作业的截止时间\n主动：(作业/作业查询/我的作业/未完成作业/作业截止时间)：返回未完成作业的截至时间和剩余时长"
+
 }
 
 TIME_SCHED = [
@@ -196,16 +200,18 @@ timetable = on_command(
         "查看课表",
         "查询课表",
         "我的课表"})
+
 update_timetable = on_command("更新课表", priority=5, block=True, aliases={"课表更新"})
+
 mayuan = on_command("马原", priority=6, block=True)
+
 idle_classroom_query = on_command(
     "空闲教室查询", priority=6, block=True, aliases={
-        "空闲教室查看", "查询空闲教室", "查看空闲教室"})
-stop_classroom = on_command(
-    "添加停止教室",
-    priority=5,
-    block=True,
-    aliases={"停止教室添加"})
+        "空闲教室查看",
+        "查询空闲教室",
+        "查看空闲教室"})
+
+stop_classroom = on_command("添加停止教室",priority=5,block=True,aliases={"停止教室添加"})
 
 aed_search = on_command("aed", priority=6, block=True, aliases={"AED"})
 
@@ -220,10 +226,24 @@ examination = on_command(
     aliases={
         "我的考试",
         "查询考试"})
+
 Pe_ = on_command("物理实验查询", priority=5, block=True, aliases={"实验成绩"})
+
 remind = on_command("提醒", priority=5, block=True, aliases={"记事", "添加"})
 
 remind_finish = on_command("完成", priority=5, block=True, aliases={"结束", "移除"})
+
+work = on_command(
+    "作业查询",
+    priority=5,
+    block=True,
+    aliases={
+        "作业",
+        "我的作业",
+        "未完成作业",
+        "作业截止时间"
+    }
+)
 
 remind_poke = on_notice(priority=5, block=True)
 
@@ -249,7 +269,7 @@ async def handle(state: T_State, args: Message = CommandArg()):
         title = "功能列表"
         txt2img = Txt2Img()
         pic = txt2img.draw(title, res)
-        res = f"更多信息请查看https://lcgx.xdu.org.cn/#/nonebot_plugin_xdu_support/README?id=%e5%bf%ab%e9%80%9f%e5%bc%80%e5%a7%8b"
+        res = "更多信息请查看https://lcgx.xdu.org.cn/#/nonebot_plugin_xdu_support/README?id=%e5%bf%ab%e9%80%9f%e5%bc%80%e5%a7%8b"
 
         await add_sub.send(MessageSegment.image(pic) + MessageSegment.text(res))
         await asyncio.sleep(0.5)
@@ -257,7 +277,7 @@ async def handle(state: T_State, args: Message = CommandArg()):
 
 @add_sub.got("model", prompt="请输入想要订阅的功能名称")
 async def got_model(event: MessageEvent, state: T_State, model_: str = ArgStr("model")):
-    if model_ in ["取消", "算了"]:
+    if model_ in {"取消", "算了"}:
         await add_sub.finish("已取消本次操作")
     model = MODLE.get(model_, None)
     state["model"] = model_
@@ -292,7 +312,7 @@ async def got_model(event: MessageEvent, state: T_State, model_: str = ArgStr("m
 @add_sub.got("infoo",
              prompt="如果输入后发现无反应，可能是会话超时，请复制密文并重新进行订阅")
 async def got_info(state: T_State, infoo: str = ArgStr("infoo")):
-    if infoo in ["取消", "算了"]:
+    if infoo in {"取消", "算了"}:
         await add_sub.finish("已取消本次操作")
     flag = 0
     await asyncio.sleep(1)
@@ -366,7 +386,7 @@ async def handle(state: T_State, args: Message = CommandArg()):
 
 @cancel_sub.got("model", prompt="请输入想要取消订阅的功能名称")
 async def got_model(event: MessageEvent, model_: str = ArgStr("model")):
-    if model_ in ["取消", "算了"]:
+    if model_ in {"取消", "算了"}:
         await cancel_sub.finish("已取消本次操作")
 
     model = MODLE.get(model_, None)
@@ -923,7 +943,7 @@ async def _(bot: Bot, event: MessageEvent, state: T_State, args: Message = Comma
 
 @idle_classroom_query.got("build", prompt="请输入您要查找的教学楼名称")
 async def _(state: T_State, build: str = ArgStr("build")):
-    if build in ["取消", "算了"]:
+    if build in {"取消", "算了"}:
         await idle_classroom_query.finish("已取消本次操作")
     ses = state["ses"]
     teaching_buildings = state["buildings"]
@@ -950,7 +970,7 @@ async def _(state: T_State, build: str = ArgStr("build")):
 
 @idle_classroom_query.got("time_select", prompt="请输入查询日期,支持输入模糊文字如'下周四'或'这周三'")
 async def _(event: MessageEvent, state: T_State, time_selector: str = ArgStr("time_select")):
-    if time_selector in ["取消", "算了"]:
+    if time_selector in {"取消", "算了"}:
         await idle_classroom_query.finish("已取消本次操作")
     try:
         time_ = jio.parse_time(
@@ -1303,7 +1323,7 @@ async def _(event: MessageEvent, state: T_State, args: Message = CommandArg()):
 
 @remind.got("item", prompt="请输入要完成的事项")
 async def _(event: MessageEvent, state: T_State, item: str = ArgStr("item")):
-    if item in ["取消", "算了"]:
+    if item in {"取消", "算了"}:
         await remind.finish("已取消本次操作")
     user_id = str(event.user_id)
     _, items = read_data(
@@ -1317,7 +1337,7 @@ async def _(event: MessageEvent, state: T_State, item: str = ArgStr("item")):
 async def _(event: MessageEvent, state: T_State, ddl: str = ArgStr("ddl"), item: str = ArgStr("item")):
     user_id = str(event.user_id)
     items = state["items"]
-    if ddl in ["取消", "算了"]:
+    if ddl in {"取消", "算了"}:
         print(ddl)
         await remind.finish("已取消本次操作")
     try:
@@ -1389,7 +1409,7 @@ async def _(event: MessageEvent, state: T_State, args: Message = CommandArg()):
 async def _(event: MessageEvent, state: T_State, item: str = ArgStr("item")):
     user_id = str(event.user_id)
     items = state["items"]
-    if item in ["取消", "算了"]:
+    if item in {"取消", "算了"}:
         await remind_finish.finish("已取消本次操作")
     try:
         item = int(item)
@@ -1498,6 +1518,73 @@ async def run_at_22_30():
             txt2img = Txt2Img()
             pic = txt2img.draw(title, msg)
             await bot.send_private_msg(user_id=int(user), message=MessageSegment.image(pic))
+
+# 未完成作业查询------------------------------------------------------------------------------
+
+
+@work.handle()
+async def _(event: PrivateMessageEvent):
+    flag, users = read_data(Path(XDU_SUPPORT_PATH, 'Work.txt'))
+    if flag:
+        users_id = [x[0] for x in users]
+        user_id = str(event.user_id)
+        if user_id in users_id:
+            info = des_descrypt(
+                users[users_id.index(user_id)][1], DES_KEY).split(" ")
+            username = info[0]
+            password = info[1]
+            msg = [0, '']
+            try:
+                target = 'https://ids.xidian.edu.cn/authserver/login?service=' \
+                         'https://learning.xidian.edu.cn/cassso/xidian'
+                ses = IDSSession(target=target, username=username, password=password)
+                msg = get_work(ses, False)
+            except requests.exceptions.RequestException:
+                await examination.finish("一站式大厅又出错了，真是可恶啊")
+            if msg[0]:
+                title = "未完成作业"
+                txt2img = Txt2Img()
+                pic = txt2img.draw(title, msg[1])
+                await work.finish(MessageSegment.image(pic))
+            else:
+                await work.finish("出错了，请联系管理员")
+                logger.warning(f"用户{user_id}获取未完成作业时出错:{msg[1]}")
+        else:
+            await work.finish("请先订阅考试查询功能,再进行查询")
+    else:
+        logger.warning("Work.txt文件打开失败")
+        await work.finish("出错了，请联系管理员")
+
+
+@scheduler.scheduled_job("cron", hour="8", month="2-7,9-12")
+async def run_at_22():
+    bot = nonebot.get_bot()
+    flag, users = read_data(Path(XDU_SUPPORT_PATH, 'Work.txt'))
+    if flag:
+        users_id = [x[0] for x in users]
+        for user_id in users_id:
+            info = des_descrypt(
+                users[users_id.index(user_id)][1], DES_KEY).split(" ")
+            username = info[0]
+            password = info[1]
+            msg = [0, '']
+            try:
+                target = 'https://ids.xidian.edu.cn/authserver/login?service=' \
+                         'https://learning.xidian.edu.cn/cassso/xidian'
+                ses = IDSSession(target=target, username=username, password=password)
+                msg = get_work(ses, False)
+            except requests.exceptions.RequestException:
+                logger.warning(f"用户{user_id}获取未完成作业时出错: 一站式访问失败")
+            if msg[0]:
+                title = "未完成作业"
+                txt2img = Txt2Img()
+                pic = txt2img.draw(title, msg[1])
+                await bot.send_private_msg(user_id=int(user_id), message=MessageSegment.image(pic))
+            else:
+                logger.warning(f"用户{user_id}获取未完成作业时出错:{msg[1]}")
+    else:
+        logger.warning("Work.txt文件打开失败")
+
 
 # 命令预处理----------------------------------------------------------------------------------
 
