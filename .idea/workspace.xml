@@ -36,7 +36,7 @@
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
     &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;vcs.Git&quot;
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;
   }
 }</component>
   <component name="RunManager">
@@ -81,6 +81,12 @@
       <workItem from="1684385818308" duration="3693000" />
       <workItem from="1684402596120" duration="1028000" />
       <workItem from="1684415521802" duration="2791000" />
+      <workItem from="1684546815161" duration="1241000" />
+      <workItem from="1684550418759" duration="149000" />
+      <workItem from="1684550583965" duration="241000" />
+      <workItem from="1684550839407" duration="990000" />
+      <workItem from="1684979509362" duration="19000" />
+      <workItem from="1684979694516" duration="219000" />
     </task>
     <servers />
   </component>

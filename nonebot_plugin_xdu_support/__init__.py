@@ -1550,7 +1550,7 @@ async def _(event: PrivateMessageEvent):
                 await work.finish("出错了，请联系管理员")
                 logger.warning(f"用户{user_id}获取未完成作业时出错:{msg[1]}")
         else:
-            await work.finish("请先订阅考试查询功能,再进行查询")
+            await work.finish("请先订阅作业查询功能,再进行查询")
     else:
         logger.warning("Work.txt文件打开失败")
         await work.finish("出错了，请联系管理员")
