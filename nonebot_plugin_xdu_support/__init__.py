@@ -1,3 +1,4 @@
+from nonebot_plugin_apscheduler import scheduler
 import time
 import re
 import asyncio
@@ -30,7 +31,6 @@ from .txt2img import Txt2Img
 # 启动定时器---------------------------------------------------------------
 
 require("nonebot_plugin_apscheduler")
-from nonebot_plugin_apscheduler import scheduler
 
 # 配置初始项---------------------------------------------------------------
 
@@ -101,7 +101,8 @@ else:
     if os.path.exists(os.path.join(go_cqhttp_data_path, "data", "voices")):
         record_flag = True
     else:
-        logger.warning(f"录音文件目录:{os.path.exists(os.path.join(go_cqhttp_data_path, 'data', 'voices'))}不存在，请检查")
+        logger.warning(
+            f"录音文件目录:{os.path.exists(os.path.join(go_cqhttp_data_path, 'data', 'voices'))}不存在，请检查")
         record_flag = False
 
 if not DES_KEY:
@@ -761,7 +762,7 @@ async def run_at_22():
                         txt2img = Txt2Img()
                         pic = txt2img.draw(title, message)
                         await bot.send_private_msg(user_id=int(user[0]), message=MessageSegment.image(pic))
-            except:
+            except BaseException:
                 pass
 
     else:
@@ -1230,7 +1231,7 @@ async def _(event: PrivateMessageEvent):
     users_id = [x[0] for x in users]
     user_id = str(event.user_id)
     if user_id in users_id:
-        username ,password = des_descrypt(
+        username, password = des_descrypt(
             users[users_id.index(user_id)][1], DES_KEY).split()
         timetable, conflicts, iswrite = getwrit_pe(
             username, password, path=f'{XDU_SUPPORT_PATH}/{username}-remake.json')

@@ -19,6 +19,7 @@ global_config = nonebot.get_driver().config
 xdu_config = Config.parse_obj(global_config.dict())
 go_cqhttp_data_path = xdu_config.go_cqhttp_data_path
 
+
 async def type_checker(event: Event) -> str:
     """判断消息类型为语音的规则。
 
@@ -37,7 +38,11 @@ async def get_text(event: Event, secret_key: str, secret_id: str):
     - bot: Bot 对象
     - event: Event 对象
     """
-    path_amr = os.path.join(go_cqhttp_data_path, "data", "voices" ,event.get_message()[0].data["file"])
+    path_amr = os.path.join(
+        go_cqhttp_data_path,
+        "data",
+        "voices",
+        event.get_message()[0].data["file"])
     path_pcm = path_amr[0:-4] + ".pcm"
     pilk.decode(path_amr, path_pcm)
     with open(path_pcm, 'rb') as f:

@@ -167,7 +167,7 @@ def getwrit_pe(user: str, passwd: str, path: str) -> (str, str, bool):
         row[4] = '-----归一成绩:' + row[4] + '\n'
         row[5] = '-----备注:' + row[5] + '\n'
         row[6] = '-----教师:' + row[6] + '\n'
-        row.insert(3,row.pop(6))
+        row.insert(3, row.pop(6))
     data_str = [[str(x) for x in row] for row in data]
 
     output_str = ''.join([''.join(row) for row in data_str])
