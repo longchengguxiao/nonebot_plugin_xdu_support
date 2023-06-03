@@ -1449,7 +1449,7 @@ async def _(event: PokeNotifyEvent):
             pic = txt2img.draw(title, msg)
             await remind_poke.finish(MessageSegment.image(pic))
     else:
-        await remind.finish("您暂未订阅提醒功能哦~")
+        await remind.finish()
 
 
 @scheduler.scheduled_job("cron", hour="22", minute="5")
