@@ -222,3 +222,5 @@ python -m pip install nonebot_plugin_xdu_support
 感谢 [nonebot-plugin-txt2img](https://github.com/mobyw/nonebot-plugin-txt2img) 提供文字转图片
 
 感谢 [just1greed](https://github.com/just1greed) 提供学习通作业提醒支持
+
+感谢 [syit-yx](https://github.com/syit-yx) 提供水电费查询支持
