@@ -119,7 +119,19 @@ def getwrit_pe(user: str, passwd: str, path: str) -> (str, str, bool):
             json_data = json.load(f)
 
         # 将data_dict添加到json_data中
-        json_data.update(data_dict)
+        for key in data_dict:
+            if key in json_data:
+                if isinstance(json_data[key], dict) and isinstance(data_dict[key], dict):
+                    json_data[key].update(data_dict[key])
+                elif isinstance(json_data[key], list) and isinstance(data_dict[key], list):
+                    json_data[key].extend(data_dict[key])
+                else:
+                    json_data[key] = data_dict[key]
+            else:
+                json_data[key] = data_dict[key]
+
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(json_data, f, ensure_ascii=False, indent=4)
 
         # 写入到临时变量后，判断是否有课程冲突存在
         #################################################
