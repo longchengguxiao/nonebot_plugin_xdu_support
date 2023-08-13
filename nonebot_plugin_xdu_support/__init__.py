@@ -27,6 +27,7 @@ from .config import Config
 from .physic import getwrit_pe, is_wright
 from .record2txt import get_text, type_checker
 from .txt2img import Txt2Img
+from .energy import check_energy, is_wright_energy
 
 # 启动定时器---------------------------------------------------------------
 
@@ -47,7 +48,8 @@ MODLE = {
     "提醒": "TX",
     "考试查询": "Ehall",
     "物理实验查询": "Pe",
-    "作业查询": "Work"
+    "作业查询": "Work",
+    "能源查询": "Energy"
 }
 
 MODEL_NEED = {
@@ -58,7 +60,8 @@ MODEL_NEED = {
     "Youth": ["陕西青少年大数据服务平台账号", "青少年大数据密码"],
     "TX": ["随便输入一些吧，反正也不需要补充信息~"],
     "Pe": ["物理实验学号", "密码"],
-    "Work": ["学号", "一站式大厅密码"]
+    "Work": ["学号", "一站式大厅密码"],
+    "Energy": ["电费账号", "电费密码"]
 }
 
 MODEL_RUN_TIME = {
@@ -73,7 +76,8 @@ MODEL_RUN_TIME = {
     "成绩查询": "返回所有必修课均分以及近两学期课程的详细分数",
     "提醒": "记下哪些ddl吧，通过戳一戳返回",
     "考试查询": "返回最近学期的考试时间",
-    "作业查询": "被动：每天早上8点私聊一次提醒未完成作业的截止时间\n主动：(作业/作业查询/我的作业/未完成作业/作业截止时间)：返回未完成作业的截至时间和剩余时长"
+    "作业查询": "被动：每天早上8点私聊一次提醒未完成作业的截止时间\n主动：(作业/作业查询/我的作业/未完成作业/作业截止时间)：返回未完成作业的截至时间和剩余时长",
+    "能源查询": "未实现"
 
 }
 
@@ -219,6 +223,8 @@ youthstudy = on_command("青年大学习", priority=5, block=True, aliases={"未
 
 grade = on_command("成绩查询", priority=5, block=True, aliases={"我的成绩", "查询成绩"})
 
+energy = on_command("能源查询", priority=5, block=True, aliases={"查询电费", "查询水电", "水电查询"})
+
 examination = on_command(
     "考试查询",
     priority=5,
@@ -300,6 +306,8 @@ async def got_model(event: MessageEvent, state: T_State, model_: str = ArgStr("m
                 res += "==========================\n"
                 for info in infos:
                     res += info + '\n'
+                if model_ == "能源查询":
+                    res += "【注意】该功能需要校园网环境\n"
                 await add_sub.send(res)
                 await asyncio.sleep(1)
                 await add_sub.send("https://longchengguxiao.github.io/encode_xdu_support/进入网站后输入相应的信息获取加密后的密文\n\n不同消息之间用空格进行分割，如'123456798 abcdefghi'，将密文复制后返回给小助手")
@@ -346,6 +354,10 @@ async def got_info(state: T_State, infoo: str = ArgStr("infoo")):
         info = des_descrypt(infoo, DES_KEY).split(" ")
         if not is_wright(info[0], info[1]):
             await add_sub.finish("物理实验网站学号密码错误，请核对后重新输入")
+    elif "电费密码" in infos:
+        info = des_descrypt(infoo, DES_KEY).split(" ")
+        if not is_wright_energy(info[0], info[1]):
+            await add_sub.finish("账号长度必须是10")
     if flag == 0:
         if infos[0] == "随便输入一些吧，反正也不需要补充信息~":
             users.append([user_id, "0", "0"])
@@ -1665,3 +1677,30 @@ async def send_forward_msg(
         return await bot.call_api(
             "send_private_forward_msg", user_id=event.user_id, messages=messages
         )
+
+
+# 能源查询---------------------------------------------------------------------------------
+
+
+@energy.handle()
+async def _(event: MessageEvent, bot: Bot):
+    flag, users = read_data(Path(XDU_SUPPORT_PATH, 'Energy.txt'))
+    users_id = [x[0] for x in users]
+    user_id = str(event.user_id)
+
+    if user_id in users_id:
+        info = des_descrypt(
+            users[users_id.index(user_id)][1], DES_KEY).split(" ")
+        account = info[0]
+        password = info[1]
+        try:
+            res = check_energy(account, password)
+        except requests.exceptions.RequestException:
+            res = -2
+            await energy.finish("出错了，请重试(-2)")
+        if res > 0:
+            await energy.finish(f"电费账号：{account}\n剩余电量：{res}度")
+        else:
+            await energy.finish(f"出错了，请重试({res})")
+    else:
+        await energy.finish("请先订阅成能源查询功能，再进行更新")
